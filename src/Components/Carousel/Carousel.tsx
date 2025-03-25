@@ -1,10 +1,10 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Card } from "react-bootstrap";
-import "bootstrap/dist/css/bootstrap.min.css";
+import { FaStar } from "react-icons/fa";
+import axios from "axios";
 import fallBackImage from "../../assets/images/artsy_logo.svg";
 import "./Carousel.css";
 import Description from "../Description/Description";
-import axios from "axios";
 
 interface CarouselItem {
   type: string;
@@ -41,14 +41,22 @@ interface ArtistInfo {
   biography: string;
 }
 
+interface Favorite {
+  artistId: string;
+  addedAt: string;
+}
+
 const ArtistCarousel: React.FC<CarouselProps> = ({ items }) => {
-  const [selectedItem, setSelectedItem] = React.useState<string | null>(null);
-  const [descriptionData, setDescriptionData] =
-    React.useState<ArtistInfo | null>(null);
-  const [artworksData, setArtworksData] = React.useState<Artworks | null>(null);
+  const [selectedItem, setSelectedItem] = useState<string | null>(null);
+  const [descriptionData, setDescriptionData] = useState<ArtistInfo | null>(
+    null
+  );
+  const [artworksData, setArtworksData] = useState<Artworks | null>(null);
+  const [favorites, setFavorites] = useState<Favorite[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    // Reset all state when items change
+    // Reset state when items change
     setSelectedItem(null);
     setDescriptionData(null);
     setArtworksData(null);
@@ -59,21 +67,61 @@ const ArtistCarousel: React.FC<CarouselProps> = ({ items }) => {
       if (selectedItem) {
         setDescriptionData(null);
         setArtworksData(null);
-        console.log(selectedItem);
+
         const [descr, artworks] = await Promise.all([
           axios.get(`http://localhost:5001/api/artists/${selectedItem}`),
           axios.get(
             `http://localhost:5001/api/artists/artwork/${selectedItem}`
           ),
         ]);
-        console.log(descr.data);
-        console.log(artworks.data);
+
         setDescriptionData(descr.data);
         setArtworksData(artworks.data);
       }
     };
     fetchData();
   }, [selectedItem]);
+
+  useEffect(() => {
+    // Fetch user ID and favorites from local storage
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    if (user && user._id) {
+      setUserId(user._id);
+      fetchFavorites(user._id);
+    }
+  }, []);
+
+  const fetchFavorites = async (userId: string) => {
+    try {
+      const response = await axios.get(
+        "http://localhost:5001/api/artists/favorites",
+        {
+          params: { userId },
+        }
+      );
+      setFavorites(response.data.favorites);
+    } catch (error) {
+      console.error("Error fetching favorites:", error);
+    }
+  };
+
+  const toggleFavorite = async (artistId: string) => {
+    if (!userId) return;
+
+    try {
+      const response = await axios.post(
+        "http://localhost:5001/api/artists/favorites",
+        {
+          userId,
+          artistId,
+        }
+      );
+
+      setFavorites(response.data.favorites);
+    } catch (error) {
+      console.error("Error updating favorites:", error);
+    }
+  };
 
   return (
     <div>
@@ -82,6 +130,7 @@ const ArtistCarousel: React.FC<CarouselProps> = ({ items }) => {
           {items.map((item) => {
             const parts = item._links.self.href.split("/");
             const id = parts[parts.length - 1];
+            const isFavorite = favorites.some((fav) => fav.artistId === id);
 
             return (
               <Card
@@ -91,9 +140,29 @@ const ArtistCarousel: React.FC<CarouselProps> = ({ items }) => {
                   textAlign: "center",
                   display: "flex",
                   flexDirection: "column",
+                  position: "relative",
                 }}
                 onClick={() => setSelectedItem(id)}
               >
+                {userId && (
+                  <FaStar
+                    size={24}
+                    color={isFavorite ? "yellow" : "white"}
+                    style={{
+                      position: "absolute",
+                      top: "10px",
+                      right: "10px",
+                      cursor: "pointer",
+                      background: "#0d6efd",
+                      borderRadius: "50%",
+                      padding: "5px",
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleFavorite(id);
+                    }}
+                  />
+                )}
                 <Card.Img
                   variant="top"
                   src={item._links.thumbnail?.href || fallBackImage}

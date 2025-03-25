@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Form, Button, Card, Alert, Spinner } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
-import Cookies from "../../../node_modules/@types/js-cookie";
+import Cookies from "js-cookie";
 import { useAuth } from "../Context/AuthContext";
 
 interface AuthResponse {

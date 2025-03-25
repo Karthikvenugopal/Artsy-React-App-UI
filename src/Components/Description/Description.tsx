@@ -1,11 +1,6 @@
-import React, { useState } from "react";
-import Nav from "react-bootstrap/Nav";
-import Card from "react-bootstrap/Card";
-import Row from "react-bootstrap/Row";
-import Col from "react-bootstrap/Col";
-import Modal from "react-bootstrap/Modal";
-import Image from "react-bootstrap/Image";
-import Spinner from "react-bootstrap/Spinner";
+import React, { useState, useEffect } from "react";
+import { Card, Nav, Row, Col, Modal, Image, Spinner } from "react-bootstrap";
+import { FaStar } from "react-icons/fa";
 import axios from "axios";
 
 interface ArtistInfo {
@@ -14,15 +9,6 @@ interface ArtistInfo {
   birthday: string;
   deathday: string;
   biography: string;
-}
-
-interface ArtworkLinks {
-  self: {
-    href: string;
-  };
-  next: {
-    href: string;
-  };
 }
 
 interface Artwork {
@@ -40,19 +26,73 @@ interface Artworks {
   _embedded: {
     artworks: Artwork[];
   };
-  _links: ArtworkLinks;
 }
 
 interface DescriptionProps {
   artistInfo: ArtistInfo | null;
   artworks: Artworks | null;
+  artistId: string;
 }
 
-const Description: React.FC<DescriptionProps> = ({ artistInfo, artworks }) => {
+interface Favorite {
+  artistId: string;
+  addedAt: string;
+}
+
+const Description: React.FC<DescriptionProps> = ({
+  artistInfo,
+  artworks,
+  artistId,
+}) => {
   const [activeTab, setActiveTab] = useState<string>("artistInfo");
   const [modalShow, setModalShow] = useState<boolean>(false);
   const [modalData, setModalData] = useState<any>(null);
   const [geneData, setGeneData] = useState<any>(null);
+  const [favorites, setFavorites] = useState<Favorite[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Fetch user ID from local storage
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    if (user && user._id) {
+      setUserId(user._id);
+      fetchFavorites(user._id);
+    }
+  }, []);
+
+  const fetchFavorites = async (userId: string) => {
+    try {
+      const response = await axios.get(
+        "http://localhost:5001/api/artists/favorites",
+        {
+          params: { userId },
+        }
+      );
+      setFavorites(response.data.favorites);
+    } catch (error) {
+      console.error("Error fetching favorites:", error);
+    }
+  };
+
+  const toggleFavorite = async () => {
+    if (!userId) return;
+
+    try {
+      const response = await axios.post(
+        "http://localhost:5001/api/artists/favorites",
+        {
+          userId,
+          artistId,
+        }
+      );
+
+      setFavorites(response.data.favorites);
+    } catch (error) {
+      console.error("Error updating favorites:", error);
+    }
+  };
+
+  const isFavorite = favorites.some((fav) => fav.artistId === artistId);
 
   function MyVerticallyCenteredModal(props: any) {
     return (
@@ -164,6 +204,29 @@ const Description: React.FC<DescriptionProps> = ({ artistInfo, artworks }) => {
         </Nav.Item>
       </Nav>
 
+      {/* Show favorite button next to title, but only when title exists */}
+      {artistInfo?.name && userId && (
+        <div
+          style={{
+            alignItems: "center",
+            gap: "10px",
+            marginTop: "15px",
+          }}
+          className="text-center mx-auto"
+        >
+          <h2>
+            {artistInfo.name}&nbsp;
+            <FaStar
+              size={30}
+              color={isFavorite ? "yellow" : "gray"}
+              style={{ cursor: "pointer" }}
+              onClick={toggleFavorite}
+              className="mb-1"
+            />
+          </h2>
+        </div>
+      )}
+
       {!artistInfo || !artworks ? (
         <div className="text-center my-3">
           <Spinner animation="border" role="status" variant="primary">
@@ -172,9 +235,6 @@ const Description: React.FC<DescriptionProps> = ({ artistInfo, artworks }) => {
         </div>
       ) : activeTab === "artistInfo" ? (
         <div className="p-3">
-          <div style={{ fontSize: "2rem", marginBottom: "1rem" }}>
-            {artistInfo.name}
-          </div>
           <div style={{ fontSize: "1.25rem" }}>
             {artistInfo.nationality}, {artistInfo.birthday} -{" "}
             {artistInfo.deathday}
@@ -198,40 +258,6 @@ const Description: React.FC<DescriptionProps> = ({ artistInfo, artworks }) => {
                     {artwork.title}, {artwork.date}
                   </Card.Title>
                 </Card.Body>
-                <Card.Footer
-                  className="text-muted text-center bg-transparent"
-                  style={{ cursor: "pointer" }}
-                  onMouseEnter={(e) => {
-                    (e.target as HTMLElement).classList.remove(
-                      "bg-transparent",
-                      "text-muted"
-                    );
-                    (e.target as HTMLElement).classList.add(
-                      "bg-primary",
-                      "text-white"
-                    );
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.target as HTMLElement).classList.remove(
-                      "bg-primary",
-                      "text-white"
-                    );
-                    (e.target as HTMLElement).classList.add(
-                      "bg-transparent",
-                      "text-black"
-                    );
-                  }}
-                  onClick={async () => {
-                    const fetchGene = await axios.get(
-                      "http://localhost:8787/genes/" + artwork.id
-                    );
-                    setGeneData(fetchGene.data);
-                    setModalShow(true);
-                    setModalData({ artwork });
-                  }}
-                >
-                  View categories
-                </Card.Footer>
               </Card>
             </Col>
           ))}
