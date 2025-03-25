@@ -1,0 +1,10 @@
+.artsy-logo {
+    width: 20px;
+    vertical-align: middle;
+}
+
+.artsy-link {
+    margin-left: 5px;
+    text-decoration: none;
+    color: inherit;
+}
