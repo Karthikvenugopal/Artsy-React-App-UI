@@ -3,7 +3,6 @@ import { Form, Button, Card, Alert, Spinner } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Cookies from "js-cookie";
-import { useAuth } from "../Context/AuthContext";
 
 interface AuthResponse {
   message: string;
@@ -31,7 +30,6 @@ const Register: React.FC = () => {
   });
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -101,11 +99,13 @@ const Register: React.FC = () => {
 
       if (!registerResponse.data?.token) throw new Error("Token not received");
 
-      // ✅ Call login function to update global state
-      login(registerResponse.data.user, registerResponse.data.token);
+      // ✅ Store user and token in localStorage & cookies
+      Cookies.set("token", registerResponse.data.token, { expires: 1 });
+      localStorage.setItem("user", JSON.stringify(registerResponse.data.user));
 
       setLoading(false);
       navigate("/favorites"); // Redirect to favorites
+      window.location.reload(); // Force header update
     } catch (err: any) {
       setLoading(false);
       setErrors({

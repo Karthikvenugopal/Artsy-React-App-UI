@@ -2,10 +2,9 @@ import React, { useState } from "react";
 import { Form, Button, Card, Alert, Spinner } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { useAuth } from "../Context/AuthContext"; // Import AuthContext for global state
+import Cookies from "js-cookie";
 
 const Login: React.FC = () => {
-  const { login } = useAuth(); // Use the login function from AuthContext
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<{
@@ -22,7 +21,6 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Email validation regex
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   // Validate a specific field
@@ -46,7 +44,7 @@ const Login: React.FC = () => {
   const handleBlur = (field: string) => {
     setTouched((prev) => {
       const updatedTouched = { ...prev, [field]: true };
-      validateField(field); // Validate immediately
+      validateField(field);
       return updatedTouched;
     });
   };
@@ -57,22 +55,13 @@ const Login: React.FC = () => {
     if (field === "password") setPassword(value);
 
     if (touched[field as keyof typeof touched]) {
-      validateField(field); // Validate in real-time only if the field was already touched
+      validateField(field);
     }
   };
 
   // Handle form submission
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-
-    // Mark all fields as touched before validating
-    setTouched({ email: true, password: true });
-    validateField("email");
-    validateField("password");
-
-    // Check if there are validation errors
-    if (errors.email || errors.password) return;
-
     setLoading(true);
 
     try {
@@ -83,11 +72,13 @@ const Login: React.FC = () => {
 
       console.log("✅ Login successful:", response.data);
 
-      // Store user and token in global state
-      login(response.data.user, response.data.token);
+      // ✅ Store user and token in localStorage & cookies
+      Cookies.set("token", response.data.token, { expires: 1 });
+      localStorage.setItem("user", JSON.stringify(response.data.user));
 
       setLoading(false);
-      navigate("/search"); // Redirect to dashboard after successful login
+      navigate("/search");
+      window.location.reload(); // Force header update
     } catch (err: any) {
       setLoading(false);
       console.error(

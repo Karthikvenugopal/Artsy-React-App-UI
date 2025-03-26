@@ -66,11 +66,7 @@ const SearchBar: React.FC = () => {
             />
           )}
         </Button>
-        <Button
-          variant="outline-secondary"
-          onClick={handleClear}
-          disabled={loading}
-        >
+        <Button variant="secondary" onClick={handleClear} disabled={loading}>
           Clear
         </Button>
       </InputGroup>

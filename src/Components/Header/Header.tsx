@@ -1,78 +1,136 @@
-import React from "react";
-import { Navbar, Container, Nav, Dropdown, Image } from "react-bootstrap";
+import React, { useState, useEffect } from "react";
+import {
+  Navbar,
+  Container,
+  Nav,
+  Dropdown,
+  Image,
+  ToastContainer,
+} from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../Context/AuthContext"; // Import AuthContext
-import { FaUserCircle } from "react-icons/fa"; // Default fallback icon
+import Cookies from "js-cookie";
+import { FaUserCircle } from "react-icons/fa";
+import ToastComponent from "../Toast/Toast";
+import "bootstrap/dist/css/bootstrap.min.css";
 
 const Header: React.FC = () => {
-  const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [user, setUser] = useState<any | null>(null);
+  const [showToast, setShowToast] = useState(false);
 
-  // Extract gravatar URL or fallback icon
-  const gravatarUrl = user?.profileImageUrl || "";
-  const defaultAvatar = <FaUserCircle size={24} className="me-2" />;
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
 
-  return (
-    <Navbar expand="lg" className="bg-light fixed-top">
-      <Container fluid>
-        <Navbar.Brand href="#">Artist Search</Navbar.Brand>
-        <Navbar.Toggle aria-controls="navbarScroll" />
-        <Navbar.Collapse id="navbarScroll">
-          {/* Consolidated navigation to the right side */}
-          <Nav className="ms-auto">
-            <Nav.Item>
-              <Nav.Link onClick={() => navigate("/search")}>Search</Nav.Link>
-            </Nav.Item>
-            {user ? (
-              <>
+  const handleLogout = () => {
+    Cookies.remove("token");
+    localStorage.removeItem("user");
+    setUser(null);
+    setShowToast(true);
+
+    setTimeout(() => {
+      navigate("/login");
+      window.location.reload();
+    }, 2000);
+  };
+
+  const handleDeleteAccount = () => {
+    Cookies.remove("token");
+    localStorage.removeItem("user");
+    setUser(null);
+    setShowToast(true);
+
+    const gravatarUrl = user?.profileImageUrl || "";
+    const defaultAvatar = <FaUserCircle size={24} className="me-2" />;
+
+    return (
+      <>
+        <Navbar expand="lg" className="bg-light fixed-top">
+          <Container fluid>
+            <Navbar.Brand href="#">Artist Search</Navbar.Brand>
+            <Navbar.Toggle aria-controls="navbarScroll" />
+            <Navbar.Collapse id="navbarScroll">
+              <Nav className="ms-auto">
                 <Nav.Item>
-                  <Nav.Link onClick={() => navigate("/favorites")}>
-                    Favorites
+                  <Nav.Link onClick={() => navigate("/search")}>
+                    Search
                   </Nav.Link>
                 </Nav.Item>
-                <Dropdown align="end">
-                  <Dropdown.Toggle
-                    variant="light"
-                    className="d-flex align-items-center border-0 bg-transparent"
-                  >
-                    {gravatarUrl ? (
-                      <Image
-                        src={gravatarUrl}
-                        roundedCircle
-                        width={24}
-                        height={24}
-                        className="me-2"
-                      />
-                    ) : (
-                      defaultAvatar
-                    )}
-                    {user.fullname}
-                  </Dropdown.Toggle>
-                  <Dropdown.Menu>
-                    <Dropdown.Item onClick={() => navigate("/delete-account")}>
-                      Delete Account
-                    </Dropdown.Item>
-                    <Dropdown.Item onClick={logout}>Log Out</Dropdown.Item>
-                  </Dropdown.Menu>
-                </Dropdown>
-              </>
-            ) : (
-              <>
-                <Nav.Item>
-                  <Nav.Link onClick={() => navigate("/login")}>Log in</Nav.Link>
-                </Nav.Item>
-                <Nav.Item>
-                  <Nav.Link onClick={() => navigate("/register")}>
-                    Register
-                  </Nav.Link>
-                </Nav.Item>
-              </>
-            )}
-          </Nav>
-        </Navbar.Collapse>
-      </Container>
-    </Navbar>
-  );
+                {user ? (
+                  <>
+                    <Nav.Item>
+                      <Nav.Link onClick={() => navigate("/favorites")}>
+                        Favorites
+                      </Nav.Link>
+                    </Nav.Item>
+                    <Dropdown align="end">
+                      <Dropdown.Toggle
+                        variant="light"
+                        className="d-flex align-items-center border-0 bg-transparent"
+                      >
+                        {gravatarUrl ? (
+                          <Image
+                            src={gravatarUrl}
+                            roundedCircle
+                            width={24}
+                            height={24}
+                            className="me-2"
+                          />
+                        ) : (
+                          defaultAvatar
+                        )}
+                        {user.fullname}
+                      </Dropdown.Toggle>
+                      <Dropdown.Menu>
+                        <Dropdown.Item
+                          onClick={() => navigate("/delete-account")}
+                        >
+                          Delete Account
+                        </Dropdown.Item>
+                        <Dropdown.Item onClick={handleLogout}>
+                          Log Out
+                        </Dropdown.Item>
+                      </Dropdown.Menu>
+                    </Dropdown>
+                  </>
+                ) : (
+                  <>
+                    <Nav.Item>
+                      <Nav.Link onClick={() => navigate("/login")}>
+                        Log in
+                      </Nav.Link>
+                    </Nav.Item>
+                    <Nav.Item>
+                      <Nav.Link onClick={() => navigate("/register")}>
+                        Register
+                      </Nav.Link>
+                    </Nav.Item>
+                  </>
+                )}
+              </Nav>
+            </Navbar.Collapse>
+          </Container>
+        </Navbar>
+
+        <ToastContainer
+          position="top-end"
+          className="p-3"
+          style={{ marginTop: "70px" }}
+          stacked
+        >
+          <ToastComponent
+            message="Logged out!"
+            show={showToast}
+            onClose={() => setShowToast(false)}
+            type="success"
+          />
+        </ToastContainer>
+      </>
+    );
+  };
 };
 
 export default Header;
