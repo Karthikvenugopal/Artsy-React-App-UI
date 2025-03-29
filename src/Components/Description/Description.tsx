@@ -95,6 +95,19 @@ const Description: React.FC<DescriptionProps> = ({
     }
   };
 
+  const handleArtworkClick = async (artwork: Artwork) => {
+    try {
+      setModalData({ artwork });
+      const response = await axios.get(
+        `http://localhost:5001/api/artists/genes/${artwork.id}`
+      );
+      setGeneData(response.data);
+      setModalShow(true);
+    } catch (error) {
+      console.error("Error fetching gene data:", error);
+    }
+  };
+
   const toggleFavorite = async () => {
     if (!userId) return;
 
@@ -115,9 +128,9 @@ const Description: React.FC<DescriptionProps> = ({
     return (
       <Modal
         {...props}
-        size="lg"
+        size="xl"
         aria-labelledby="contained-modal-title-vcenter"
-        centered
+        // centered
       >
         <Modal.Header closeButton>
           <Modal.Title
@@ -149,7 +162,7 @@ const Description: React.FC<DescriptionProps> = ({
             style={{
               display: "flex",
               flexWrap: "wrap",
-              justifyContent: "center",
+              // justifyContent: "center",
               gap: "1rem",
             }}
           >
@@ -157,7 +170,7 @@ const Description: React.FC<DescriptionProps> = ({
               <Card
                 key={index}
                 style={{
-                  width: "200px",
+                  width: "250px",
                   textAlign: "center",
                 }}
               >
@@ -277,7 +290,10 @@ const Description: React.FC<DescriptionProps> = ({
                     {artwork.title}, {artwork.date}
                   </Card.Title>
                 </Card.Body>
-                <Card.Footer>
+                <Card.Footer
+                  style={{ cursor: "pointer" }}
+                  onClick={() => handleArtworkClick(artwork)}
+                >
                   <small className="text-muted">View categories</small>
                 </Card.Footer>
               </Card>

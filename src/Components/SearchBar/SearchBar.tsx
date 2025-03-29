@@ -53,7 +53,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onArtistSelect, onClear }) => {
           className="py-2"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+          onKeyDown={(e) => e.key === "Enter" && handleSearch()}
         />
         <Button
           variant="primary"

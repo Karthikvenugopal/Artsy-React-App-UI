@@ -28,16 +28,24 @@ const Login: React.FC = () => {
     let newErrors = { ...errors };
 
     if (field === "email") {
-      if (!email.trim()) newErrors.email = "Email is required.";
-      else if (!emailRegex.test(email))
-        newErrors.email = "Invalid email format.";
-      else newErrors.email = "";
+      if (!email.trim()) {
+        newErrors.email = "Email is required.";
+      } else if (!emailRegex.test(email)) {
+        newErrors.email = "Email must be valid.";
+      } else {
+        newErrors.email = "";
+      }
     }
+
     if (field === "password") {
       newErrors.password = password.trim() ? "" : "Password is required.";
     }
 
     setErrors(newErrors);
+  };
+
+  const isFormValid = () => {
+    return emailRegex.test(email) && password.trim().length > 0;
   };
 
   // Handle blur (user leaves a field)
@@ -139,7 +147,7 @@ const Login: React.FC = () => {
               variant="primary"
               type="submit"
               className="w-100"
-              disabled={loading}
+              disabled={loading || !isFormValid()}
             >
               {loading ? <Spinner animation="border" size="sm" /> : "Login"}
             </Button>

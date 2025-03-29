@@ -17,12 +17,16 @@ function App() {
   );
   const [userId, setUserId] = useState<string | null>(null);
 
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user") || "null");
+    setUserId(user?._id || null);
+  }, []);
+
   const handleArtistSelect = (artistId: string) => {
     localStorage.setItem("selectedArtistId", artistId);
     setSelectedArtistId(artistId);
   };
 
-  // Add clear handler
   const handleSearchClear = () => {
     localStorage.removeItem("selectedArtistId");
     setSelectedArtistId(null);
@@ -42,7 +46,7 @@ function App() {
               >
                 <SearchBar
                   onArtistSelect={handleArtistSelect}
-                  onClear={handleSearchClear} // Pass clear handler
+                  onClear={handleSearchClear}
                 />
 
                 {selectedArtistId && (
@@ -53,13 +57,10 @@ function App() {
                     />
 
                     {userId && (
-                      <div className="mt-4">
-                        <h3 className="text-start mb-3">Similar Artists</h3>
-                        <SimilarArtistsCarousel
-                          artistId={selectedArtistId}
-                          onArtistSelect={handleArtistSelect}
-                        />
-                      </div>
+                      <SimilarArtistsCarousel
+                        artistId={selectedArtistId}
+                        onArtistSelect={handleArtistSelect}
+                      />
                     )}
                   </>
                 )}

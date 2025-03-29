@@ -38,22 +38,33 @@ const Register: React.FC = () => {
     let newErrors = { ...errors };
 
     if (field === "fullName") {
-      newErrors.fullName =
-        value.trim().length >= 3
-          ? ""
-          : "Full Name must be at least 3 characters.";
+      if (!value.trim()) {
+        newErrors.fullName = "Fullname is required.";
+      } else if (value.trim().length < 3) {
+        newErrors.fullName = "Fullname must be at least 3 characters.";
+      } else {
+        newErrors.fullName = "";
+      }
     }
+
     if (field === "email") {
-      if (!value.trim()) newErrors.email = "Email is required.";
-      else if (!emailRegex.test(value))
-        newErrors.email = "Invalid email format.";
-      else newErrors.email = "";
+      if (!value.trim()) {
+        newErrors.email = "Email is required.";
+      } else if (!emailRegex.test(value)) {
+        newErrors.email = "Email must be valid.";
+      } else {
+        newErrors.email = "";
+      }
     }
+
     if (field === "password") {
-      newErrors.password =
-        value.trim().length >= 6
-          ? ""
-          : "Password must be at least 6 characters.";
+      if (!value.trim()) {
+        newErrors.password = "Password is required.";
+      } else if (value.trim().length < 6) {
+        newErrors.password = "Password must be at least 6 characters.";
+      } else {
+        newErrors.password = "";
+      }
     }
 
     setErrors(newErrors);
@@ -114,14 +125,19 @@ const Register: React.FC = () => {
     }
   };
 
+  const isFormValid = () => {
+    return (
+      fullName.trim().length >= 3 &&
+      emailRegex.test(email) &&
+      password.trim().length >= 6
+    );
+  };
+
   return (
     <div>
       <Card className="mx-auto" style={{ width: "22rem", marginTop: "5rem" }}>
         <Card.Body>
           <Card.Title className="mb-3 text-start fs-2">Register</Card.Title>
-
-          {errors.email && <Alert variant="danger">{errors.email}</Alert>}
-
           <Form onSubmit={handleSubmit}>
             <Form.Group controlId="formFullName" className="mb-3 text-start">
               <Form.Label>Full Name</Form.Label>
@@ -175,7 +191,7 @@ const Register: React.FC = () => {
               variant="primary"
               type="submit"
               className="w-100"
-              disabled={loading}
+              disabled={loading || !isFormValid()}
             >
               {loading ? <Spinner animation="border" size="sm" /> : "Register"}
             </Button>
