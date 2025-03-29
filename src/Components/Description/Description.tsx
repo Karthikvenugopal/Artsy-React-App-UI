@@ -29,9 +29,8 @@ interface Artworks {
 }
 
 interface DescriptionProps {
-  artistInfo: ArtistInfo | null;
-  artworks: Artworks | null;
   artistId: string;
+  onArtistSelect: (artistId: string) => void;
 }
 
 interface Favorite {
@@ -40,9 +39,8 @@ interface Favorite {
 }
 
 const Description: React.FC<DescriptionProps> = ({
-  artistInfo,
-  artworks,
   artistId,
+  onArtistSelect,
 }) => {
   const [activeTab, setActiveTab] = useState<string>("artistInfo");
   const [modalShow, setModalShow] = useState<boolean>(false);
@@ -50,9 +48,34 @@ const Description: React.FC<DescriptionProps> = ({
   const [geneData, setGeneData] = useState<any>(null);
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
+  const [artistInfo, setArtistInfo] = useState<ArtistInfo | null>(null);
+  const [artworks, setArtworks] = useState<Artworks | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Fetch user ID from local storage
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [infoRes, artworksRes] = await Promise.all([
+          axios.get(`http://localhost:5001/api/artists/${artistId}`),
+          axios.get(`http://localhost:5001/api/artists/artwork/${artistId}`),
+        ]);
+
+        setArtistInfo(infoRes.data);
+        setArtworks(artworksRes.data);
+      } catch (error) {
+        console.error("Error fetching artist data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (artistId) {
+      fetchData();
+    }
+  }, [artistId]);
+
+  useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user") || "{}");
     if (user && user._id) {
       setUserId(user._id);
@@ -64,9 +87,7 @@ const Description: React.FC<DescriptionProps> = ({
     try {
       const response = await axios.get(
         "http://localhost:5001/api/artists/favorites",
-        {
-          params: { userId },
-        }
+        { params: { userId } }
       );
       setFavorites(response.data.favorites);
     } catch (error) {
@@ -80,12 +101,8 @@ const Description: React.FC<DescriptionProps> = ({
     try {
       const response = await axios.post(
         "http://localhost:5001/api/artists/favorites",
-        {
-          userId,
-          artistId,
-        }
+        { userId, artistId }
       );
-
       setFavorites(response.data.favorites);
     } catch (error) {
       console.error("Error updating favorites:", error);
@@ -205,7 +222,7 @@ const Description: React.FC<DescriptionProps> = ({
       </Nav>
 
       {/* Show favorite button next to title, but only when title exists */}
-      {artistInfo?.name && userId && (
+      {artistInfo?.name && (
         <div
           style={{
             alignItems: "center",
@@ -216,13 +233,15 @@ const Description: React.FC<DescriptionProps> = ({
         >
           <h2>
             {artistInfo.name}&nbsp;
-            <FaStar
-              size={30}
-              color={isFavorite ? "yellow" : "gray"}
-              style={{ cursor: "pointer" }}
-              onClick={toggleFavorite}
-              className="mb-1"
-            />
+            {userId && (
+              <FaStar
+                size={30}
+                color={isFavorite ? "yellow" : "gray"}
+                style={{ cursor: "pointer" }}
+                onClick={toggleFavorite}
+                className="mb-1"
+              />
+            )}
           </h2>
         </div>
       )}
@@ -258,6 +277,9 @@ const Description: React.FC<DescriptionProps> = ({
                     {artwork.title}, {artwork.date}
                   </Card.Title>
                 </Card.Body>
+                <Card.Footer>
+                  <small className="text-muted">View categories</small>
+                </Card.Footer>
               </Card>
             </Col>
           ))}

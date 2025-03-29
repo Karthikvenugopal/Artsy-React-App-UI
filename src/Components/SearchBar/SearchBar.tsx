@@ -6,7 +6,12 @@ import Form from "react-bootstrap/Form";
 import InputGroup from "react-bootstrap/InputGroup";
 import Spinner from "react-bootstrap/Spinner";
 
-const SearchBar: React.FC = () => {
+interface SearchBarProps {
+  onArtistSelect: (artistId: string) => void;
+  onClear: () => void; // Add this prop
+}
+
+const SearchBar: React.FC<SearchBarProps> = ({ onArtistSelect, onClear }) => {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [searchResults, setSearchResults] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(false);
@@ -17,6 +22,7 @@ const SearchBar: React.FC = () => {
     setSearchResults([]);
     setCarouselKey((prev) => prev + 1);
     setLoading(false);
+    onClear(); // Call the clear handler
   };
 
   const handleSearch = async () => {
@@ -66,13 +72,21 @@ const SearchBar: React.FC = () => {
             />
           )}
         </Button>
-        <Button variant="secondary" onClick={handleClear} disabled={loading}>
+        <Button
+          variant="outline-secondary"
+          onClick={handleClear}
+          disabled={loading}
+        >
           Clear
         </Button>
       </InputGroup>
 
       {searchResults.length > 0 && (
-        <ArtistCarousel key={carouselKey} items={searchResults} />
+        <ArtistCarousel
+          key={carouselKey}
+          items={searchResults}
+          onArtistSelect={onArtistSelect}
+        />
       )}
     </div>
   );
