@@ -7,19 +7,40 @@ import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import SearchBar from "./Components/SearchBar/SearchBar";
 import Register from "./Components/Register/Register";
 import Login from "./Components/Login/Login";
+import FavoritesPage from "./Components/Favorites/FavoritesPage";
 import Description from "./Components/Description/Description";
 import { useEffect, useState } from "react";
 import SimilarArtistsCarousel from "./Components/SimilarArtistsCarousel/SimilarArtistsCarousel";
+import axios from "axios";
 
 function App() {
   const [selectedArtistId, setSelectedArtistId] = useState<string | null>(
     localStorage.getItem("selectedArtistId") || null
   );
-  const [userId, setUserId] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user") || "null");
-    setUserId(user?._id || null);
+    const fetchMe = async () => {
+      try {
+        const res = await axios.get("http://localhost:5001/api/auth/me", {
+          withCredentials: true,
+        });
+        setUser(res.data);
+        localStorage.setItem("user", JSON.stringify(res.data));
+        localStorage.setItem(
+          "favorites",
+          JSON.stringify(res.data.favorites.map((f: any) => f.artistId))
+        );
+        window.dispatchEvent(new Event("favoritesUpdated"));
+      } catch (err) {
+        setUser(null);
+        localStorage.removeItem("user");
+        localStorage.removeItem("favorites");
+        window.dispatchEvent(new Event("favoritesUpdated"));
+      }
+    };
+
+    fetchMe();
   }, []);
 
   const handleArtistSelect = (artistId: string) => {
@@ -56,7 +77,7 @@ function App() {
                       onArtistSelect={handleArtistSelect}
                     />
 
-                    {userId && (
+                    {user && (
                       <SimilarArtistsCarousel
                         artistId={selectedArtistId}
                         onArtistSelect={handleArtistSelect}
@@ -69,6 +90,7 @@ function App() {
           />
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/favorites" element={<FavoritesPage />} />
         </Routes>
         <Footer />
       </Container>

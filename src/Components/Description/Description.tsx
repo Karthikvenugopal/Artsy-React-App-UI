@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Card, Nav, Row, Col, Modal, Image, Spinner } from "react-bootstrap";
-import { FaStar } from "react-icons/fa";
+import { FaStar, FaRegStar } from "react-icons/fa";
 import axios from "axios";
 
 interface ArtistInfo {
@@ -46,11 +46,23 @@ const Description: React.FC<DescriptionProps> = ({
   const [modalShow, setModalShow] = useState<boolean>(false);
   const [modalData, setModalData] = useState<any>(null);
   const [geneData, setGeneData] = useState<any>(null);
-  const [favorites, setFavorites] = useState<Favorite[]>([]);
-  const [userId, setUserId] = useState<string | null>(null);
   const [artistInfo, setArtistInfo] = useState<ArtistInfo | null>(null);
   const [artworks, setArtworks] = useState<Artworks | null>(null);
+  const [favorites, setFavorites] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const user = JSON.parse(localStorage.getItem("user") || "null");
+
+  useEffect(() => {
+    const syncFavorites = () => {
+      const storedFavs = JSON.parse(localStorage.getItem("favorites") || "[]");
+      setFavorites(storedFavs);
+    };
+
+    syncFavorites();
+    window.addEventListener("favoritesUpdated", syncFavorites);
+    return () => window.removeEventListener("favoritesUpdated", syncFavorites);
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -75,26 +87,6 @@ const Description: React.FC<DescriptionProps> = ({
     }
   }, [artistId]);
 
-  useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-    if (user && user._id) {
-      setUserId(user._id);
-      fetchFavorites(user._id);
-    }
-  }, []);
-
-  const fetchFavorites = async (userId: string) => {
-    try {
-      const response = await axios.get(
-        "http://localhost:5001/api/artists/favorites",
-        { params: { userId } }
-      );
-      setFavorites(response.data.favorites);
-    } catch (error) {
-      console.error("Error fetching favorites:", error);
-    }
-  };
-
   const handleArtworkClick = async (artwork: Artwork) => {
     try {
       setModalData({ artwork });
@@ -109,20 +101,21 @@ const Description: React.FC<DescriptionProps> = ({
   };
 
   const toggleFavorite = async () => {
-    if (!userId) return;
-
     try {
-      const response = await axios.post(
+      const res = await axios.post(
         "http://localhost:5001/api/artists/favorites",
-        { userId, artistId }
+        { artistId },
+        { withCredentials: true }
       );
-      setFavorites(response.data.favorites);
+      const updatedFavorites = res.data.favorites.map((f: any) => f.artistId);
+      localStorage.setItem("favorites", JSON.stringify(updatedFavorites));
+      window.dispatchEvent(new Event("favoritesUpdated"));
     } catch (error) {
       console.error("Error updating favorites:", error);
     }
   };
 
-  const isFavorite = favorites.some((fav) => fav.artistId === artistId);
+  const isFavorite = favorites.includes(artistId);
 
   function MyVerticallyCenteredModal(props: any) {
     return (
@@ -130,7 +123,6 @@ const Description: React.FC<DescriptionProps> = ({
         {...props}
         size="xl"
         aria-labelledby="contained-modal-title-vcenter"
-        // centered
       >
         <Modal.Header closeButton>
           <Modal.Title
@@ -158,29 +150,14 @@ const Description: React.FC<DescriptionProps> = ({
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              // justifyContent: "center",
-              gap: "1rem",
-            }}
-          >
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem" }}>
             {geneData?._embedded?.genes.map((gene: any, index: number) => (
-              <Card
-                key={index}
-                style={{
-                  width: "250px",
-                  textAlign: "center",
-                }}
-              >
+              <Card key={index} style={{ width: "250px", textAlign: "center" }}>
                 <Card.Img
                   variant="top"
                   src={gene._links.thumbnail.href}
                   alt={gene.name}
-                  style={{
-                    borderRadius: "5px",
-                  }}
+                  style={{ borderRadius: "5px" }}
                 />
                 <Card.Body>
                   <Card.Title style={{ fontSize: "1rem" }}>
@@ -209,57 +186,52 @@ const Description: React.FC<DescriptionProps> = ({
         }}
       >
         <Nav.Item style={{ width: "50%" }}>
-          <Nav.Link
-            eventKey="artistInfo"
-            style={{
-              padding: "0.75rem 1rem",
-              textAlign: "center",
-              width: "100%",
-            }}
-          >
+          <Nav.Link eventKey="artistInfo" style={{ textAlign: "center" }}>
             Artist Info
           </Nav.Link>
         </Nav.Item>
         <Nav.Item style={{ width: "50%" }}>
-          <Nav.Link
-            eventKey="artworks"
-            style={{
-              padding: "0.75rem 1rem",
-              textAlign: "center",
-              width: "100%",
-            }}
-          >
+          <Nav.Link eventKey="artworks" style={{ textAlign: "center" }}>
             Artworks
           </Nav.Link>
         </Nav.Item>
       </Nav>
 
-      {/* Show favorite button next to title, but only when title exists */}
+      {/* Name + Favorite Star */}
       {artistInfo?.name && (
-        <div
-          style={{
-            alignItems: "center",
-            gap: "10px",
-            marginTop: "15px",
-          }}
-          className="text-center mx-auto"
-        >
-          <h2>
-            {artistInfo.name}&nbsp;
-            {userId && (
-              <FaStar
-                size={30}
-                color={isFavorite ? "yellow" : "gray"}
-                style={{ cursor: "pointer" }}
-                onClick={toggleFavorite}
-                className="mb-1"
-              />
-            )}
-          </h2>
+        <div className="text-center mx-auto mt-3 d-flex justify-content-center align-items-center gap-2">
+          <h2 className="mb-0">{artistInfo.name}</h2>
+          {user && (
+            <div
+              onClick={toggleFavorite}
+              style={{
+                cursor: "pointer",
+                borderRadius: "50%",
+                padding: "5px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {isFavorite ? (
+                <FaStar
+                  size={26}
+                  color="yellow"
+                  style={{ stroke: "gray", strokeWidth: 1.5 }}
+                />
+              ) : (
+                <FaRegStar
+                  size={26}
+                  color="gray"
+                  style={{ stroke: "gray", strokeWidth: 1.5 }}
+                />
+              )}
+            </div>
+          )}
         </div>
       )}
 
-      {!artistInfo || !artworks ? (
+      {loading || !artistInfo || !artworks ? (
         <div className="text-center my-3">
           <Spinner animation="border" role="status" variant="primary">
             <span className="visually-hidden">Loading...</span>

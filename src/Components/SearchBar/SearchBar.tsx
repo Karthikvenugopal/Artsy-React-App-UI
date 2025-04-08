@@ -8,7 +8,7 @@ import Spinner from "react-bootstrap/Spinner";
 
 interface SearchBarProps {
   onArtistSelect: (artistId: string) => void;
-  onClear: () => void; // Add this prop
+  onClear: () => void;
 }
 
 const SearchBar: React.FC<SearchBarProps> = ({ onArtistSelect, onClear }) => {
@@ -16,13 +16,14 @@ const SearchBar: React.FC<SearchBarProps> = ({ onArtistSelect, onClear }) => {
   const [searchResults, setSearchResults] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [carouselKey, setCarouselKey] = React.useState(0);
+  const user = JSON.parse(localStorage.getItem("user") || "null");
 
   const handleClear = () => {
     setSearchTerm("");
     setSearchResults([]);
     setCarouselKey((prev) => prev + 1);
     setLoading(false);
-    onClear(); // Call the clear handler
+    onClear();
   };
 
   const handleSearch = async () => {
@@ -81,7 +82,8 @@ const SearchBar: React.FC<SearchBarProps> = ({ onArtistSelect, onClear }) => {
         </Button>
       </InputGroup>
 
-      {searchResults.length > 0 && (
+      {/* Only show carousel if user is logged in */}
+      {user && searchResults.length > 0 && (
         <ArtistCarousel
           key={carouselKey}
           items={searchResults}

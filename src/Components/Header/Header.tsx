@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
 import { FaUserCircle } from "react-icons/fa";
 import ToastComponent from "../Toast/Toast";
+import axios from "axios";
 import "bootstrap/dist/css/bootstrap.min.css";
 
 const Header: React.FC = () => {
@@ -38,15 +39,22 @@ const Header: React.FC = () => {
     }, 2000);
   };
 
-  const handleDeleteAccount = () => {
-    Cookies.remove("token");
-    localStorage.removeItem("user");
-    setUser(null);
-    setShowDeleteToast(true);
-    setTimeout(() => {
-      navigate("/login");
-      window.location.reload();
-    }, 2000);
+  const handleDeleteAccount = async () => {
+    try {
+      await axios.delete("http://localhost:5001/api/auth/delete-account", {
+        withCredentials: true,
+      });
+      Cookies.remove("token");
+      localStorage.removeItem("user");
+      setUser(null);
+      setShowDeleteToast(true);
+      setTimeout(() => {
+        navigate("/login");
+        window.location.reload();
+      }, 2000);
+    } catch (err) {
+      console.error("Error deleting account:", err);
+    }
   };
 
   const gravatarUrl = user?.profileImageUrl || "";
@@ -89,9 +97,7 @@ const Header: React.FC = () => {
                       {user.fullname}
                     </Dropdown.Toggle>
                     <Dropdown.Menu>
-                      <Dropdown.Item
-                        onClick={() => navigate("/delete-account")}
-                      >
+                      <Dropdown.Item onClick={handleDeleteAccount}>
                         Delete Account
                       </Dropdown.Item>
                       <Dropdown.Item onClick={handleLogout}>

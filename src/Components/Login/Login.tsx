@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Form, Button, Card, Alert, Spinner } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -23,7 +23,14 @@ const Login: React.FC = () => {
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-  // Validate a specific field
+  useEffect(() => {
+    // Check if the user is already logged in
+    const token = Cookies.get("token");
+    if (token) {
+      navigate("/search");
+    }
+  }, [navigate]);
+
   const validateField = (field: string) => {
     let newErrors = { ...errors };
 
@@ -48,7 +55,6 @@ const Login: React.FC = () => {
     return emailRegex.test(email) && password.trim().length > 0;
   };
 
-  // Handle blur (user leaves a field)
   const handleBlur = (field: string) => {
     setTouched((prev) => {
       const updatedTouched = { ...prev, [field]: true };
@@ -57,7 +63,6 @@ const Login: React.FC = () => {
     });
   };
 
-  // Handle input changes
   const handleInputChange = (field: string, value: string) => {
     if (field === "email") setEmail(value);
     if (field === "password") setPassword(value);
@@ -67,7 +72,6 @@ const Login: React.FC = () => {
     }
   };
 
-  // Handle form submission
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setLoading(true);
@@ -80,13 +84,12 @@ const Login: React.FC = () => {
 
       console.log("✅ Login successful:", response.data);
 
-      // ✅ Store user and token in localStorage & cookies
       Cookies.set("token", response.data.token, { expires: 1 });
       localStorage.setItem("user", JSON.stringify(response.data.user));
 
       setLoading(false);
       navigate("/search");
-      window.location.reload(); // Force header update
+      window.location.reload();
     } catch (err: any) {
       setLoading(false);
       console.error(
