@@ -12,6 +12,7 @@ import Description from "./Components/Description/Description";
 import { useEffect, useState } from "react";
 import SimilarArtistsCarousel from "./Components/SimilarArtistsCarousel/SimilarArtistsCarousel";
 import axios from "axios";
+import Cookies from "js-cookie";
 
 function App() {
   const [selectedArtistId, setSelectedArtistId] = useState<string | null>(
@@ -22,6 +23,10 @@ function App() {
   useEffect(() => {
     const fetchMe = async () => {
       try {
+        const token = Cookies.get("token");
+        console.log("Token from cookies:", token);
+        if (!token) return; // ⛔ Don't call if not logged in
+
         const res = await axios.get("http://localhost:5001/api/auth/me", {
           withCredentials: true,
         });
@@ -71,19 +76,17 @@ function App() {
                 />
 
                 {selectedArtistId && (
-                  <>
-                    <Description
-                      artistId={selectedArtistId}
-                      onArtistSelect={handleArtistSelect}
-                    />
+                  <Description
+                    artistId={selectedArtistId}
+                    onArtistSelect={handleArtistSelect}
+                  />
+                )}
 
-                    {user && (
-                      <SimilarArtistsCarousel
-                        artistId={selectedArtistId}
-                        onArtistSelect={handleArtistSelect}
-                      />
-                    )}
-                  </>
+                {selectedArtistId && user && (
+                  <SimilarArtistsCarousel
+                    artistId={selectedArtistId}
+                    onArtistSelect={handleArtistSelect}
+                  />
                 )}
               </div>
             }

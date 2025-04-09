@@ -7,15 +7,17 @@ import {
   Image,
   ToastContainer,
 } from "react-bootstrap";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import Cookies from "js-cookie";
 import { FaUserCircle } from "react-icons/fa";
 import ToastComponent from "../Toast/Toast";
 import axios from "axios";
 import "bootstrap/dist/css/bootstrap.min.css";
+import "./Header.css"; // 👈 Import the custom CSS (create this file)
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [user, setUser] = useState<any | null>(null);
   const [showLogoutToast, setShowLogoutToast] = useState(false);
   const [showDeleteToast, setShowDeleteToast] = useState(false);
@@ -60,6 +62,8 @@ const Header: React.FC = () => {
   const gravatarUrl = user?.profileImageUrl || "";
   const defaultAvatar = <FaUserCircle size={24} className="me-2" />;
 
+  const isActive = (path: string) => location.pathname === path;
+
   return (
     <>
       <Navbar expand="lg" className="bg-light fixed-top">
@@ -69,12 +73,22 @@ const Header: React.FC = () => {
           <Navbar.Collapse id="navbarScroll">
             <Nav className="ms-auto">
               <Nav.Item>
-                <Nav.Link onClick={() => navigate("/search")}>Search</Nav.Link>
+                <Nav.Link
+                  onClick={() => navigate("/search")}
+                  className={isActive("/search") ? "custom-active-link" : ""}
+                >
+                  Search
+                </Nav.Link>
               </Nav.Item>
               {user ? (
                 <>
                   <Nav.Item>
-                    <Nav.Link onClick={() => navigate("/favorites")}>
+                    <Nav.Link
+                      onClick={() => navigate("/favorites")}
+                      className={
+                        isActive("/favorites") ? "custom-active-link" : ""
+                      }
+                    >
                       Favorites
                     </Nav.Link>
                   </Nav.Item>
@@ -109,12 +123,20 @@ const Header: React.FC = () => {
               ) : (
                 <>
                   <Nav.Item>
-                    <Nav.Link onClick={() => navigate("/login")}>
+                    <Nav.Link
+                      onClick={() => navigate("/login")}
+                      className={isActive("/login") ? "custom-active-link" : ""}
+                    >
                       Log in
                     </Nav.Link>
                   </Nav.Item>
                   <Nav.Item>
-                    <Nav.Link onClick={() => navigate("/register")}>
+                    <Nav.Link
+                      onClick={() => navigate("/register")}
+                      className={
+                        isActive("/register") ? "custom-active-link" : ""
+                      }
+                    >
                       Register
                     </Nav.Link>
                   </Nav.Item>

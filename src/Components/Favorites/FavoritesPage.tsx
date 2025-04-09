@@ -1,15 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { Card, Container, Row, Col, Spinner, Button } from "react-bootstrap";
+import { Card, Container, Row, Col, Spinner } from "react-bootstrap";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import fallBackImage from "../../assets/images/artsy_logo.svg";
 
 interface Favorite {
   artistId: string;
-  addedAt: string;
-}
-
-interface ArtistInfo {
-  id: string;
   name: string;
   birthday: string;
   deathday: string;
@@ -23,9 +19,9 @@ const getRelativeTime = (dateStr: string) => {
   const diff = Date.now() - addedDate.getTime();
   const seconds = Math.floor(diff / 1000);
 
-  if (seconds < 60) return `${seconds} second${seconds !== 1 ? "s" : ""} ago`;
+  if (seconds <= 60) return `${seconds} second${seconds !== 1 ? "s" : ""} ago`;
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes} minute${minutes !== 1 ? "s" : ""} ago`;
+  if (seconds < 3600) return `${minutes} minute${minutes !== 1 ? "s" : ""} ago`;
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours} hour${hours !== 1 ? "s" : ""} ago`;
   const days = Math.floor(hours / 24);
@@ -34,74 +30,46 @@ const getRelativeTime = (dateStr: string) => {
 
 const FavoritesPage: React.FC = () => {
   const navigate = useNavigate();
-  const [artists, setArtists] = useState<ArtistInfo[]>([]);
+  const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [loading, setLoading] = useState(true);
-  const [liveUpdate, setLiveUpdate] = useState(0);
-  const user = JSON.parse(localStorage.getItem("user") || "null");
-  const [hasFetched, setHasFetched] = useState(false); // full reload only
+  const [hasFetched, setHasFetched] = useState(false);
+  const [tick, setTick] = useState(0);
 
-  // Update timer every 30s
   useEffect(() => {
-    const interval = setInterval(
-      () => setLiveUpdate((prev) => prev + 1),
-      30000
-    );
+    const interval = setInterval(() => {
+      setTick((prev) => prev + 1);
+    }, 1000);
     return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
-    if (!user) return;
+    const cached = localStorage.getItem("cached_favorites");
+    if (cached) {
+      setFavorites(JSON.parse(cached));
+      setLoading(false);
+    }
+
     const fetchFavorites = async () => {
       try {
-        setLoading(true);
         const res = await axios.get(
-          "http://localhost:5001/api/artists/favorites",
-          {
-            withCredentials: true,
-          }
+          "http://localhost:5001/api/artists/favorites/saved",
+          { withCredentials: true }
         );
-
-        const favorites: Favorite[] = res.data.favorites;
-
-        // sort by addedAt descending
-        favorites.sort(
+        const sorted = [...res.data.favorites].sort(
           (a, b) =>
             new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime()
         );
-
-        const results = await Promise.all(
-          favorites.map((f) =>
-            axios
-              .get(`http://localhost:5001/api/artists/${f.artistId}`)
-              .then((res) => ({
-                id: f.artistId,
-                name: res.data.name,
-                birthday: res.data.birthday,
-                deathday: res.data.deathday,
-                nationality: res.data.nationality,
-                thumbnail: `https://www.artsy.net/images/${f.artistId}.jpg`, // fallback if no thumbnail
-                addedAt: f.addedAt,
-              }))
-          )
-        );
-
-        setArtists(results);
-        localStorage.setItem("cached_favorites", JSON.stringify(results));
-        setHasFetched(true);
+        setFavorites(sorted);
+        localStorage.setItem("cached_favorites", JSON.stringify(sorted));
       } catch (err) {
-        console.error("Error fetching favorites page:", err);
+        console.error("Error fetching favorites:", err);
       } finally {
+        setHasFetched(true);
         setLoading(false);
       }
     };
 
-    const cached = localStorage.getItem("cached_favorites");
-    if (cached) {
-      setArtists(JSON.parse(cached));
-      setLoading(false);
-    } else {
-      fetchFavorites();
-    }
+    fetchFavorites();
   }, []);
 
   const handleRemove = async (artistId: string) => {
@@ -111,8 +79,8 @@ const FavoritesPage: React.FC = () => {
         { artistId },
         { withCredentials: true }
       );
-      const updated = artists.filter((a) => a.id !== artistId);
-      setArtists(updated);
+      const updated = favorites.filter((a) => a.artistId !== artistId);
+      setFavorites(updated);
       localStorage.setItem("cached_favorites", JSON.stringify(updated));
       window.dispatchEvent(new Event("favoritesUpdated"));
     } catch (err) {
@@ -125,37 +93,53 @@ const FavoritesPage: React.FC = () => {
     navigate("/search");
   };
 
-  if (!user) {
+  const user = JSON.parse(localStorage.getItem("user") || "null");
+  if (!user)
     return <p className="text-center mt-5">Please log in to view favorites.</p>;
-  }
 
   return (
     <Container className="mt-5 pt-5">
-      <h2 className="mb-4">Your Favorite Artists</h2>
       {loading && !hasFetched ? (
         <div className="text-center my-5">
           <Spinner animation="border" variant="primary" />
         </div>
-      ) : artists.length === 0 ? (
-        <p className="text-muted">No favorite artists.</p>
+      ) : favorites.length === 0 ? (
+        <div className="w-100 d-flex justify-content-center mt-4">
+          <div
+            className="w-100 p-3"
+            style={{
+              maxWidth: "3000px",
+              backgroundColor: "#f8d7da",
+              border: "1px solid #f5c2c7",
+              color: "#842029",
+              borderRadius: "0.375rem",
+              textAlign: "left",
+            }}
+          >
+            No favorite artists.
+          </div>
+        </div>
       ) : (
         <Row className="g-4">
-          {artists.map((artist) => (
-            <Col key={artist.id} xs={12} sm={6} md={4} lg={3}>
+          {favorites.map((artist) => (
+            <Col key={artist.artistId} xs={12} md={6} lg={4}>
               <Card
                 style={{
+                  minHeight: "200px",
                   position: "relative",
                   cursor: "pointer",
                   overflow: "hidden",
                   color: "white",
                   border: "none",
                 }}
-                onClick={() => handleCardClick(artist.id)}
+                onClick={() => handleCardClick(artist.artistId)}
               >
                 {/* Blurred background */}
                 <div
                   style={{
-                    backgroundImage: `url(${artist.thumbnail})`,
+                    backgroundImage: `url(${
+                      artist.thumbnail || fallBackImage
+                    })`,
                     backgroundSize: "cover",
                     backgroundPosition: "center",
                     filter: "blur(8px)",
@@ -172,31 +156,40 @@ const FavoritesPage: React.FC = () => {
                   style={{
                     position: "relative",
                     zIndex: 2,
-                    padding: "1rem",
+                    padding: "0.75rem",
                     backgroundColor: "rgba(0,0,0,0.5)",
                     borderRadius: "0.5rem",
+                    height: "100%",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
                   }}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <Card.Title className="fw-bold">{artist.name}</Card.Title>
-                  <div>{artist.nationality}</div>
                   <div>
-                    {artist.birthday} - {artist.deathday}
+                    <Card.Title className="fw-bold fs-5 text-white text-start">
+                      {artist.name}
+                    </Card.Title>
+                    <div className="text-start">
+                      {artist.birthday} - {artist.deathday}
+                    </div>
+                    <div className="text-start">{artist.nationality}</div>
                   </div>
-                  <div className="mt-2 text-info">
-                    {getRelativeTime(artist.addedAt)}
+                  <div className="d-flex justify-content-between align-items-center">
+                    <div className="small">
+                      {getRelativeTime(artist.addedAt)}
+                    </div>
+                    <span
+                      className="text-white text-decoration-underline"
+                      style={{ cursor: "pointer", fontSize: "0.9rem" }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemove(artist.artistId);
+                      }}
+                    >
+                      Remove
+                    </span>
                   </div>
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    className="mt-3"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleRemove(artist.id);
-                    }}
-                  >
-                    Remove
-                  </Button>
                 </Card.Body>
               </Card>
             </Col>

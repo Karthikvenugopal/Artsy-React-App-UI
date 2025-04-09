@@ -24,9 +24,8 @@ const Login: React.FC = () => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   useEffect(() => {
-    // Check if the user is already logged in
-    const token = Cookies.get("token");
-    if (token) {
+    const localUser = localStorage.getItem("user");
+    if (localUser) {
       navigate("/search");
     }
   }, [navigate]);

@@ -1,7 +1,18 @@
+// ✅ Description.tsx (Updated to show toasts on favorite/unfavorite)
 import React, { useState, useEffect } from "react";
-import { Card, Nav, Row, Col, Modal, Image, Spinner } from "react-bootstrap";
+import {
+  Card,
+  Nav,
+  Row,
+  Col,
+  Modal,
+  Image,
+  Spinner,
+  ToastContainer,
+} from "react-bootstrap";
 import { FaStar, FaRegStar } from "react-icons/fa";
 import axios from "axios";
+import ToastComponent from "../Toast/Toast";
 
 interface ArtistInfo {
   name: string;
@@ -33,11 +44,6 @@ interface DescriptionProps {
   onArtistSelect: (artistId: string) => void;
 }
 
-interface Favorite {
-  artistId: string;
-  addedAt: string;
-}
-
 const Description: React.FC<DescriptionProps> = ({
   artistId,
   onArtistSelect,
@@ -50,6 +56,9 @@ const Description: React.FC<DescriptionProps> = ({
   const [artworks, setArtworks] = useState<Artworks | null>(null);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [toasts, setToasts] = useState<
+    { id: number; message: string; type: "success" | "danger" }[]
+  >([]);
 
   const user = JSON.parse(localStorage.getItem("user") || "null");
 
@@ -87,17 +96,11 @@ const Description: React.FC<DescriptionProps> = ({
     }
   }, [artistId]);
 
-  const handleArtworkClick = async (artwork: Artwork) => {
-    try {
-      setModalData({ artwork });
-      const response = await axios.get(
-        `http://localhost:5001/api/artists/genes/${artwork.id}`
-      );
-      setGeneData(response.data);
-      setModalShow(true);
-    } catch (error) {
-      console.error("Error fetching gene data:", error);
-    }
+  const addToast = (message: string, type: "success" | "danger") => {
+    setToasts((prev) => {
+      const next = [...prev, { id: Date.now(), message, type }];
+      return next.slice(-3);
+    });
   };
 
   const toggleFavorite = async () => {
@@ -110,6 +113,12 @@ const Description: React.FC<DescriptionProps> = ({
       const updatedFavorites = res.data.favorites.map((f: any) => f.artistId);
       localStorage.setItem("favorites", JSON.stringify(updatedFavorites));
       window.dispatchEvent(new Event("favoritesUpdated"));
+
+      if (favorites.includes(artistId)) {
+        addToast("Artist removed from favorites", "danger");
+      } else {
+        addToast("Artist added to favorites", "success");
+      }
     } catch (error) {
       console.error("Error updating favorites:", error);
     }
@@ -173,111 +182,143 @@ const Description: React.FC<DescriptionProps> = ({
   }
 
   return (
-    <div>
-      <Nav
-        variant="pills"
-        activeKey={activeTab}
-        onSelect={(key) => setActiveTab(key || "artistInfo")}
-        className="d-flex flex-nowrap"
-        style={{
-          fontSize: "1.25rem",
-          width: "80%",
-          margin: "0 auto",
-        }}
-      >
-        <Nav.Item style={{ width: "50%" }}>
-          <Nav.Link eventKey="artistInfo" style={{ textAlign: "center" }}>
-            Artist Info
-          </Nav.Link>
-        </Nav.Item>
-        <Nav.Item style={{ width: "50%" }}>
-          <Nav.Link eventKey="artworks" style={{ textAlign: "center" }}>
-            Artworks
-          </Nav.Link>
-        </Nav.Item>
-      </Nav>
-
-      {/* Name + Favorite Star */}
-      {artistInfo?.name && (
-        <div className="text-center mx-auto mt-3 d-flex justify-content-center align-items-center gap-2">
-          <h2 className="mb-0">{artistInfo.name}</h2>
-          {user && (
-            <div
-              onClick={toggleFavorite}
-              style={{
-                cursor: "pointer",
-                borderRadius: "50%",
-                padding: "5px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              {isFavorite ? (
-                <FaStar
-                  size={26}
-                  color="yellow"
-                  style={{ stroke: "gray", strokeWidth: 1.5 }}
-                />
-              ) : (
-                <FaRegStar
-                  size={26}
-                  color="gray"
-                  style={{ stroke: "gray", strokeWidth: 1.5 }}
-                />
-              )}
-            </div>
-          )}
-        </div>
-      )}
+    <div className="mt-4">
+      <div className="w-100 d-flex justify-content-center">
+        <Nav
+          variant="pills"
+          activeKey={activeTab}
+          onSelect={(key) => setActiveTab(key || "artistInfo")}
+          className="w-100 d-flex"
+          style={{ maxWidth: "3000px", fontSize: "1.25rem" }}
+        >
+          <Nav.Item style={{ width: "50%" }}>
+            <Nav.Link eventKey="artistInfo" style={{ textAlign: "center" }}>
+              Artist Info
+            </Nav.Link>
+          </Nav.Item>
+          <Nav.Item style={{ width: "50%" }}>
+            <Nav.Link eventKey="artworks" style={{ textAlign: "center" }}>
+              Artworks
+            </Nav.Link>
+          </Nav.Item>
+        </Nav>
+      </div>
 
       {loading || !artistInfo || !artworks ? (
-        <div className="text-center my-3">
-          <Spinner animation="border" role="status" variant="primary">
-            <span className="visually-hidden">Loading...</span>
-          </Spinner>
-        </div>
-      ) : activeTab === "artistInfo" ? (
-        <div className="p-3">
-          <div style={{ fontSize: "1.25rem" }}>
-            {artistInfo.nationality}, {artistInfo.birthday} -{" "}
-            {artistInfo.deathday}
-          </div>
-          <div style={{ marginTop: "1rem", fontSize: "1.25rem" }}>
-            {artistInfo.biography}
-          </div>
+        <div className="text-center my-4">
+          <Spinner animation="border" role="status" variant="primary" />
         </div>
       ) : (
-        <Row className="g-4 p-3">
-          {artworks._embedded.artworks.map((artwork) => (
-            <Col key={artwork.id} xs={12} sm={6} md={4} lg={3}>
-              <Card>
-                <Card.Img
-                  variant="top"
-                  src={artwork._links.thumbnail.href}
-                  alt={artwork.title}
-                />
-                <Card.Body>
-                  <Card.Title>
-                    {artwork.title}, {artwork.date}
-                  </Card.Title>
-                </Card.Body>
-                <Card.Footer
-                  style={{ cursor: "pointer" }}
-                  onClick={() => handleArtworkClick(artwork)}
-                >
-                  <small className="text-muted">View categories</small>
-                </Card.Footer>
-              </Card>
-            </Col>
-          ))}
-        </Row>
+        <>
+          <div className="text-center mx-auto mt-3 d-flex justify-content-center align-items-center gap-2">
+            <h2 className="mb-0">{artistInfo.name}</h2>
+            {user && (
+              <div
+                onClick={toggleFavorite}
+                style={{
+                  cursor: "pointer",
+                  borderRadius: "50%",
+                  padding: "5px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {isFavorite ? (
+                  <FaStar
+                    size={26}
+                    color="yellow"
+                    style={{ stroke: "gray", strokeWidth: 1.5 }}
+                  />
+                ) : (
+                  <FaRegStar
+                    size={26}
+                    color="gray"
+                    style={{ stroke: "gray", strokeWidth: 1.5 }}
+                  />
+                )}
+              </div>
+            )}
+          </div>
+
+          {activeTab === "artistInfo" ? (
+            <div className="p-3">
+              <div style={{ fontSize: "1.25rem" }}>
+                {artistInfo.nationality}, {artistInfo.birthday} -{" "}
+                {artistInfo.deathday}
+              </div>
+              <div style={{ marginTop: "1rem", fontSize: "1.25rem" }}>
+                {artistInfo.biography}
+              </div>
+            </div>
+          ) : artworks._embedded.artworks.length === 0 ? (
+            <div className="w-100 d-flex justify-content-center mt-4">
+              <div
+                className="w-100 p-3"
+                style={{
+                  maxWidth: "3000px",
+                  backgroundColor: "#f8d7da",
+                  border: "1px solid #f5c2c7",
+                  color: "#842029",
+                  borderRadius: "0.375rem",
+                  textAlign: "left",
+                }}
+              >
+                No artworks.
+              </div>
+            </div>
+          ) : (
+            <Row className="g-4 p-3">
+              {artworks._embedded.artworks.map((artwork) => (
+                <Col key={artwork.id} xs={12} sm={6} md={4} lg={3}>
+                  <Card>
+                    <Card.Img
+                      variant="top"
+                      src={artwork._links.thumbnail.href}
+                      alt={artwork.title}
+                    />
+                    <Card.Body>
+                      <Card.Title>
+                        {artwork.title}, {artwork.date}
+                      </Card.Title>
+                    </Card.Body>
+                    <Card.Footer
+                      style={{ cursor: "pointer" }}
+                      onClick={() => handleArtworkClick(artwork)}
+                    >
+                      <small className="text-muted">View categories</small>
+                    </Card.Footer>
+                  </Card>
+                </Col>
+              ))}
+            </Row>
+          )}
+        </>
       )}
 
       <MyVerticallyCenteredModal
         show={modalShow}
         onHide={() => setModalShow(false)}
       />
+
+      {/* Toasts */}
+      <ToastContainer
+        position="top-end"
+        className="p-3"
+        style={{ marginTop: "70px" }}
+      >
+        {toasts.map((toast) => (
+          <ToastComponent
+            key={toast.id}
+            message={toast.message}
+            show={true}
+            type={toast.type}
+            onClose={() =>
+              setToasts((prev) => prev.filter((t) => t.id !== toast.id))
+            }
+          />
+        ))}
+      </ToastContainer>
     </div>
   );
 };

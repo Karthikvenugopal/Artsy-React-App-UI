@@ -1,0 +1,12 @@
+.nav-link {
+  margin-right: 30px !important;
+}
+
+.custom-active-link {
+  background-color: #0d6efd !important; /* Bootstrap blue */
+  color: white !important;
+  border-radius: 6px !important;
+  padding: 8px 16px !important;
+  font-weight: 500;
+  margin-right: 12px !important; /* Same spacing for selected item */
+}
