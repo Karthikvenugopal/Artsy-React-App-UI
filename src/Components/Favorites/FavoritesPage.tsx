@@ -1,8 +1,19 @@
 import React, { useEffect, useState } from "react";
-import { Card, Container, Row, Col, Spinner } from "react-bootstrap";
+import {
+  Card,
+  Container,
+  Row,
+  Col,
+  Spinner,
+  ToastContainer,
+} from "react-bootstrap";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import fallBackImage from "../../assets/images/artsy_logo.svg";
+import "./FavoritesPage.css";
+import ToastComponent from "../Toast/Toast";
+
+const baseUrl = import.meta.env.VITE_API_BACKEND_URI;
 
 interface Favorite {
   artistId: string;
@@ -34,6 +45,9 @@ const FavoritesPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [hasFetched, setHasFetched] = useState(false);
   const [tick, setTick] = useState(0);
+  const [toasts, setToasts] = useState<
+    { id: number; message: string; type: "success" | "danger" }[]
+  >([]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -51,10 +65,9 @@ const FavoritesPage: React.FC = () => {
 
     const fetchFavorites = async () => {
       try {
-        const res = await axios.get(
-          "http://localhost:5001/api/artists/favorites/saved",
-          { withCredentials: true }
-        );
+        const res = await axios.get(`${baseUrl}/api/artists/favorites/saved`, {
+          withCredentials: true,
+        });
         const sorted = [...res.data.favorites].sort(
           (a, b) =>
             new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime()
@@ -72,10 +85,17 @@ const FavoritesPage: React.FC = () => {
     fetchFavorites();
   }, []);
 
+  const addToast = (message: string, type: "success" | "danger") => {
+    setToasts((prev) => {
+      const next = [...prev, { id: Date.now(), message, type }];
+      return next.slice(-3); // Keep max 3 toasts
+    });
+  };
+
   const handleRemove = async (artistId: string) => {
     try {
       await axios.post(
-        "http://localhost:5001/api/artists/favorites",
+        `${baseUrl}/api/artists/favorites`,
         { artistId },
         { withCredentials: true }
       );
@@ -83,6 +103,7 @@ const FavoritesPage: React.FC = () => {
       setFavorites(updated);
       localStorage.setItem("cached_favorites", JSON.stringify(updated));
       window.dispatchEvent(new Event("favoritesUpdated"));
+      addToast("Removed from favorites", "danger");
     } catch (err) {
       console.error("Failed to remove favorite:", err);
     }
@@ -94,8 +115,7 @@ const FavoritesPage: React.FC = () => {
   };
 
   const user = JSON.parse(localStorage.getItem("user") || "null");
-  if (!user)
-    return <p className="text-center mt-5">Please log in to view favorites.</p>;
+  if (!user) navigate("/login");
 
   return (
     <Container className="mt-5 pt-5">
@@ -122,16 +142,15 @@ const FavoritesPage: React.FC = () => {
       ) : (
         <Row className="g-4">
           {favorites.map((artist) => (
-            <Col key={artist.artistId} xs={12} md={6} lg={4}>
+            <Col
+              key={artist.artistId}
+              xs={12}
+              md={6}
+              lg={4}
+              className="favorites-col"
+            >
               <Card
-                style={{
-                  minHeight: "200px",
-                  position: "relative",
-                  cursor: "pointer",
-                  overflow: "hidden",
-                  color: "white",
-                  border: "none",
-                }}
+                className="favorites-card"
                 onClick={() => handleCardClick(artist.artistId)}
               >
                 {/* Blurred background */}
@@ -196,6 +215,24 @@ const FavoritesPage: React.FC = () => {
           ))}
         </Row>
       )}
+
+      <ToastContainer
+        position="top-end"
+        className="p-3"
+        style={{ marginTop: "70px" }}
+      >
+        {toasts.map((toast) => (
+          <ToastComponent
+            key={toast.id}
+            message={toast.message}
+            show={true}
+            type={toast.type}
+            onClose={() =>
+              setToasts((prev) => prev.filter((t) => t.id !== toast.id))
+            }
+          />
+        ))}
+      </ToastContainer>
     </Container>
   );
 };

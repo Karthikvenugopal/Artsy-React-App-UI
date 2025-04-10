@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import { Form, Button, Card, Alert, Spinner } from "react-bootstrap";
+import { Form, Button, Card, Spinner } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Cookies from "js-cookie";
+const baseUrl = import.meta.env.VITE_API_BACKEND_URI;
 
 interface AuthResponse {
   message: string;
@@ -19,11 +20,7 @@ const Register: React.FC = () => {
     email?: string;
     password?: string;
   }>({});
-  const [touched, setTouched] = useState<{
-    fullName: boolean;
-    email: boolean;
-    password: boolean;
-  }>({
+  const [touched, setTouched] = useState({
     fullName: false,
     email: false,
     password: false,
@@ -33,18 +30,11 @@ const Register: React.FC = () => {
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-  // ✅ Validate a specific field
   const validateField = (field: string, value: string) => {
     let newErrors = { ...errors };
 
     if (field === "fullName") {
-      if (!value.trim()) {
-        newErrors.fullName = "Fullname is required.";
-      } else if (value.trim().length < 3) {
-        newErrors.fullName = "Fullname must be at least 3 characters.";
-      } else {
-        newErrors.fullName = "";
-      }
+      newErrors.fullName = value.trim() ? "" : "Fullname is required.";
     }
 
     if (field === "email") {
@@ -58,31 +48,23 @@ const Register: React.FC = () => {
     }
 
     if (field === "password") {
-      if (!value.trim()) {
-        newErrors.password = "Password is required.";
-      } else if (value.trim().length < 6) {
-        newErrors.password = "Password must be at least 6 characters.";
-      } else {
-        newErrors.password = "";
-      }
+      newErrors.password = value.trim() ? "" : "Password is required.";
     }
 
     setErrors(newErrors);
   };
 
-  // ✅ Handle blur (when a field loses focus)
   const handleBlur = (field: string) => {
     setTouched((prev) => {
-      const updatedTouched = { ...prev, [field]: true };
+      const updated = { ...prev, [field]: true };
       validateField(
         field,
         field === "fullName" ? fullName : field === "email" ? email : password
       );
-      return updatedTouched;
+      return updated;
     });
   };
 
-  // ✅ Handle input change & validate dynamically
   const handleInputChange = (field: string, value: string) => {
     if (field === "fullName") setFullName(value);
     if (field === "email") setEmail(value);
@@ -93,14 +75,13 @@ const Register: React.FC = () => {
     }
   };
 
-  // ✅ Handle form submission
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setLoading(true);
 
     try {
-      const registerResponse = await axios.post<AuthResponse>(
-        "http://localhost:5001/api/auth/register",
+      const response = await axios.post<AuthResponse>(
+        `${baseUrl}/api/auth/register`,
         {
           fullname: fullName,
           email,
@@ -108,36 +89,31 @@ const Register: React.FC = () => {
         }
       );
 
-      if (!registerResponse.data?.token) throw new Error("Token not received");
+      if (!response.data?.token) throw new Error("Token not received");
 
-      // ✅ Store user and token in localStorage & cookies
-      Cookies.set("token", registerResponse.data.token, { expires: 1 });
-      localStorage.setItem("user", JSON.stringify(registerResponse.data.user));
+      Cookies.set("token", response.data.token, { expires: 1 });
+      localStorage.setItem("user", JSON.stringify(response.data.user));
 
       setLoading(false);
-      navigate("/favorites"); // Redirect to favorites
-      window.location.reload(); // Force header update
+      navigate("/search");
+      window.location.reload();
     } catch (err: any) {
       setLoading(false);
       setErrors({
+        ...errors,
         email: err.response?.data?.message || "Something went wrong.",
       });
     }
   };
 
-  const isFormValid = () => {
-    return (
-      fullName.trim().length >= 3 &&
-      emailRegex.test(email) &&
-      password.trim().length >= 6
-    );
-  };
+  const isFormValid = () => emailRegex.test(email) && !!fullName && !!password;
 
   return (
     <div>
       <Card className="mx-auto" style={{ width: "22rem", marginTop: "5rem" }}>
         <Card.Body>
           <Card.Title className="mb-3 text-start fs-2">Register</Card.Title>
+
           <Form onSubmit={handleSubmit}>
             <Form.Group controlId="formFullName" className="mb-3 text-start">
               <Form.Label>Full Name</Form.Label>
@@ -199,7 +175,8 @@ const Register: React.FC = () => {
         </Card.Body>
       </Card>
 
-      <div className="mt-2 text-center">
+      {/* This stays outside the card, but will have spacing */}
+      <div className="mt-3 text-center">
         Already have an account? <Link to="/login">Login</Link>
       </div>
     </div>

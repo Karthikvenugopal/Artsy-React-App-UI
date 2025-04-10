@@ -1,4 +1,3 @@
-// ✅ Description.tsx (Updated to show toasts on favorite/unfavorite)
 import React, { useState, useEffect } from "react";
 import {
   Card,
@@ -13,6 +12,9 @@ import {
 import { FaStar, FaRegStar } from "react-icons/fa";
 import axios from "axios";
 import ToastComponent from "../Toast/Toast";
+import "./Description.css";
+
+const baseUrl = import.meta.env.VITE_API_BACKEND_URI;
 
 interface ArtistInfo {
   name: string;
@@ -48,8 +50,8 @@ const Description: React.FC<DescriptionProps> = ({
   artistId,
   onArtistSelect,
 }) => {
-  const [activeTab, setActiveTab] = useState<string>("artistInfo");
-  const [modalShow, setModalShow] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState("artistInfo");
+  const [modalShow, setModalShow] = useState(false);
   const [modalData, setModalData] = useState<any>(null);
   const [geneData, setGeneData] = useState<any>(null);
   const [artistInfo, setArtistInfo] = useState<ArtistInfo | null>(null);
@@ -67,7 +69,6 @@ const Description: React.FC<DescriptionProps> = ({
       const storedFavs = JSON.parse(localStorage.getItem("favorites") || "[]");
       setFavorites(storedFavs);
     };
-
     syncFavorites();
     window.addEventListener("favoritesUpdated", syncFavorites);
     return () => window.removeEventListener("favoritesUpdated", syncFavorites);
@@ -78,10 +79,9 @@ const Description: React.FC<DescriptionProps> = ({
       try {
         setLoading(true);
         const [infoRes, artworksRes] = await Promise.all([
-          axios.get(`http://localhost:5001/api/artists/${artistId}`),
-          axios.get(`http://localhost:5001/api/artists/artwork/${artistId}`),
+          axios.get(`${baseUrl}/api/artists/${artistId}`),
+          axios.get(`${baseUrl}/api/artists/artwork/${artistId}`),
         ]);
-
         setArtistInfo(infoRes.data);
         setArtworks(artworksRes.data);
       } catch (error) {
@@ -106,7 +106,7 @@ const Description: React.FC<DescriptionProps> = ({
   const toggleFavorite = async () => {
     try {
       const res = await axios.post(
-        "http://localhost:5001/api/artists/favorites",
+        `${baseUrl}/api/artists/favorites`,
         { artistId },
         { withCredentials: true }
       );
@@ -115,89 +115,113 @@ const Description: React.FC<DescriptionProps> = ({
       window.dispatchEvent(new Event("favoritesUpdated"));
 
       if (favorites.includes(artistId)) {
-        addToast("Artist removed from favorites", "danger");
+        addToast("Removed from favorites", "danger");
       } else {
-        addToast("Artist added to favorites", "success");
+        addToast("Added to favorites", "success");
       }
     } catch (error) {
       console.error("Error updating favorites:", error);
     }
   };
 
+  const handleArtworkClick = async (artwork: Artwork) => {
+    try {
+      setModalData({ artwork });
+      const response = await axios.get(
+        `${baseUrl}/api/artists/genes/${artwork.id}`
+      );
+      setGeneData(response.data);
+      setModalShow(true);
+    } catch (error) {
+      console.error("Error fetching gene data:", error);
+    }
+  };
+
   const isFavorite = favorites.includes(artistId);
 
-  function MyVerticallyCenteredModal(props: any) {
+  function ArtworkModal(props: any) {
     return (
       <Modal
         {...props}
         size="xl"
-        aria-labelledby="contained-modal-title-vcenter"
+        scrollable
+        backdrop="static"
+        keyboard={true}
+        style={{ height: "90vh", margin: "0 auto" }}
       >
         <Modal.Header closeButton>
-          <Modal.Title
-            id="contained-modal-title-vcenter"
-            style={{ display: "flex", alignItems: "center", gap: "1rem" }}
-          >
+          <Modal.Title className="d-flex align-items-center gap-3">
             <Image
               src={modalData?.artwork?._links?.thumbnail?.href}
               alt={modalData?.artwork?.title}
-              style={{
-                maxWidth: "50px",
-                height: "50px",
-                objectFit: "cover",
-                borderRadius: "5px",
-              }}
+              className="rounded object-fit-cover"
+              style={{ width: "50px", height: "50px" }}
             />
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              <span style={{ fontWeight: "bold", fontSize: "1.25rem" }}>
-                {modalData?.artwork?.title}
-              </span>
-              <span style={{ fontSize: "1rem", color: "gray" }}>
-                {modalData?.artwork?.date}
-              </span>
+            <div className="d-flex flex-column fs-6 fw-normal">
+              <div>{modalData?.artwork?.title}</div>
+              <div>{modalData?.artwork?.date}</div>
             </div>
           </Modal.Title>
         </Modal.Header>
-        <Modal.Body>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem" }}>
+
+        <Modal.Body
+          className="overflow-auto"
+          style={{ height: "calc(100vh - 120px)" }}
+        >
+          <Row className="g-4 artwork-modal-row">
             {geneData?._embedded?.genes.map((gene: any, index: number) => (
-              <Card key={index} style={{ width: "250px", textAlign: "center" }}>
-                <Card.Img
-                  variant="top"
-                  src={gene._links.thumbnail.href}
-                  alt={gene.name}
-                  style={{ borderRadius: "5px" }}
-                />
-                <Card.Body>
-                  <Card.Title style={{ fontSize: "1rem" }}>
-                    {gene.name}
-                  </Card.Title>
-                </Card.Body>
-              </Card>
+              <Col
+                key={index}
+                xs={12}
+                sm={10}
+                md={6}
+                lg={3}
+                className="d-flex justify-content-center justify-content-lg-start"
+              >
+                <Card
+                  className="h-100 text-center w-100"
+                  style={{ maxWidth: "20rem" }}
+                >
+                  <Card.Img
+                    variant="top"
+                    src={gene._links.thumbnail.href}
+                    alt={gene.name}
+                    className="rounded"
+                    style={{ height: "250px", objectFit: "cover" }}
+                  />
+                  <Card.Body className="p-3">
+                    <Card.Title className="text-truncate mb-0 fs-6">
+                      {gene.name}
+                    </Card.Title>
+                  </Card.Body>
+                </Card>
+              </Col>
             ))}
-          </div>
+          </Row>
         </Modal.Body>
       </Modal>
     );
   }
 
   return (
-    <div className="mt-4">
-      <div className="w-100 d-flex justify-content-center">
+    <div
+      className="w-100 mx-auto mt-4 text-center"
+      style={{ maxWidth: "1280px" }}
+    >
+      <div className="d-flex justify-content-center mt-2">
         <Nav
           variant="pills"
           activeKey={activeTab}
           onSelect={(key) => setActiveTab(key || "artistInfo")}
-          className="w-100 d-flex"
-          style={{ maxWidth: "3000px", fontSize: "1.25rem" }}
+          className="w-100"
         >
-          <Nav.Item style={{ width: "50%" }}>
-            <Nav.Link eventKey="artistInfo" style={{ textAlign: "center" }}>
+          <Nav.Item className="w-50">
+            <Nav.Link eventKey="artistInfo" className="text-center w-100">
               Artist Info
             </Nav.Link>
           </Nav.Item>
-          <Nav.Item style={{ width: "50%" }}>
-            <Nav.Link eventKey="artworks" style={{ textAlign: "center" }}>
+          <Nav.Item className="w-50">
+            <Nav.Link eventKey="artworks" className="text-center w-100">
               Artworks
             </Nav.Link>
           </Nav.Item>
@@ -210,19 +234,13 @@ const Description: React.FC<DescriptionProps> = ({
         </div>
       ) : (
         <>
-          <div className="text-center mx-auto mt-3 d-flex justify-content-center align-items-center gap-2">
-            <h2 className="mb-0">{artistInfo.name}</h2>
+          <div className="text-center mt-3 d-flex justify-content-center align-items-center gap-2">
+            <div className="fs-3 fw-medium">{artistInfo.name}</div>
             {user && (
               <div
                 onClick={toggleFavorite}
-                style={{
-                  cursor: "pointer",
-                  borderRadius: "50%",
-                  padding: "5px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
+                className="d-flex align-items-center justify-content-center p-1 rounded-circle"
+                style={{ cursor: "pointer" }}
               >
                 {isFavorite ? (
                   <FaStar
@@ -242,12 +260,12 @@ const Description: React.FC<DescriptionProps> = ({
           </div>
 
           {activeTab === "artistInfo" ? (
-            <div className="p-3">
-              <div style={{ fontSize: "1.25rem" }}>
+            <div>
+              <div className="text-center fs-6">
                 {artistInfo.nationality}, {artistInfo.birthday} -{" "}
                 {artistInfo.deathday}
               </div>
-              <div style={{ marginTop: "1rem", fontSize: "1.25rem" }}>
+              <div className="mt-3 text-start text-break fs-6">
                 {artistInfo.biography}
               </div>
             </div>
@@ -270,8 +288,15 @@ const Description: React.FC<DescriptionProps> = ({
           ) : (
             <Row className="g-4 p-3">
               {artworks._embedded.artworks.map((artwork) => (
-                <Col key={artwork.id} xs={12} sm={6} md={4} lg={3}>
-                  <Card>
+                <Col
+                  key={artwork.id}
+                  xs={12}
+                  sm={12}
+                  md={6}
+                  lg={3}
+                  className="d-flex justify-content-center mb-4"
+                >
+                  <Card className="w-100" style={{ maxWidth: "22rem" }}>
                     <Card.Img
                       variant="top"
                       src={artwork._links.thumbnail.href}
@@ -283,10 +308,10 @@ const Description: React.FC<DescriptionProps> = ({
                       </Card.Title>
                     </Card.Body>
                     <Card.Footer
-                      style={{ cursor: "pointer" }}
+                      className="hover-blue-footer"
                       onClick={() => handleArtworkClick(artwork)}
                     >
-                      <small className="text-muted">View categories</small>
+                      View categories
                     </Card.Footer>
                   </Card>
                 </Col>
@@ -296,12 +321,8 @@ const Description: React.FC<DescriptionProps> = ({
         </>
       )}
 
-      <MyVerticallyCenteredModal
-        show={modalShow}
-        onHide={() => setModalShow(false)}
-      />
+      <ArtworkModal show={modalShow} onHide={() => setModalShow(false)} />
 
-      {/* Toasts */}
       <ToastContainer
         position="top-end"
         className="p-3"

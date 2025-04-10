@@ -12,8 +12,10 @@ import Cookies from "js-cookie";
 import { FaUserCircle } from "react-icons/fa";
 import ToastComponent from "../Toast/Toast";
 import axios from "axios";
-import "bootstrap/dist/css/bootstrap.min.css";
-import "./Header.css"; // 👈 Import the custom CSS (create this file)
+// import "bootstrap/dist/css/bootstrap.min.css";
+import "./Header.css";
+
+const baseUrl = import.meta.env.VITE_API_BACKEND_URI;
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
@@ -43,7 +45,7 @@ const Header: React.FC = () => {
 
   const handleDeleteAccount = async () => {
     try {
-      await axios.delete("http://localhost:5001/api/auth/delete-account", {
+      await axios.delete(`${baseUrl}/api/auth/delete-account`, {
         withCredentials: true,
       });
       Cookies.remove("token");
@@ -61,12 +63,11 @@ const Header: React.FC = () => {
 
   const gravatarUrl = user?.profileImageUrl || "";
   const defaultAvatar = <FaUserCircle size={24} className="me-2" />;
-
   const isActive = (path: string) => location.pathname === path;
 
   return (
     <>
-      <Navbar expand="lg" className="bg-light fixed-top">
+      <Navbar expand="lg" className="bg-light">
         <Container fluid>
           <Navbar.Brand href="#">Artist Search</Navbar.Brand>
           <Navbar.Toggle aria-controls="navbarScroll" />
@@ -77,9 +78,10 @@ const Header: React.FC = () => {
                   onClick={() => navigate("/search")}
                   className={isActive("/search") ? "custom-active-link" : ""}
                 >
-                  Search
+                  &nbsp; Search &nbsp;
                 </Nav.Link>
               </Nav.Item>
+
               {user ? (
                 <>
                   <Nav.Item>
@@ -89,13 +91,14 @@ const Header: React.FC = () => {
                         isActive("/favorites") ? "custom-active-link" : ""
                       }
                     >
-                      Favorites
+                      &nbsp; Favorites &nbsp;
                     </Nav.Link>
                   </Nav.Item>
-                  <Dropdown align="end">
+                  <Dropdown>
                     <Dropdown.Toggle
                       variant="light"
-                      className="d-flex align-items-center border-0 bg-transparent"
+                      className="d-flex align-items-center justify-content-center border-0 bg-transparent"
+                      style={{ textAlign: "center" }}
                     >
                       {gravatarUrl ? (
                         <Image
@@ -110,11 +113,21 @@ const Header: React.FC = () => {
                       )}
                       {user.fullname}
                     </Dropdown.Toggle>
-                    <Dropdown.Menu>
-                      <Dropdown.Item onClick={handleDeleteAccount}>
+                    <Dropdown.Menu
+                      className="text-start dropdown-no-push"
+                      style={{ right: "0", left: "auto" }}
+                    >
+                      <Dropdown.Item
+                        onClick={handleDeleteAccount}
+                        className="text-danger"
+                      >
                         Delete Account
                       </Dropdown.Item>
-                      <Dropdown.Item onClick={handleLogout}>
+                      <Dropdown.Divider />
+                      <Dropdown.Item
+                        onClick={handleLogout}
+                        className="text-primary"
+                      >
                         Log Out
                       </Dropdown.Item>
                     </Dropdown.Menu>
@@ -127,7 +140,7 @@ const Header: React.FC = () => {
                       onClick={() => navigate("/login")}
                       className={isActive("/login") ? "custom-active-link" : ""}
                     >
-                      Log in
+                      &nbsp; Log in &nbsp;
                     </Nav.Link>
                   </Nav.Item>
                   <Nav.Item>
@@ -137,7 +150,7 @@ const Header: React.FC = () => {
                         isActive("/register") ? "custom-active-link" : ""
                       }
                     >
-                      Register
+                      &nbsp; Register &nbsp;
                     </Nav.Link>
                   </Nav.Item>
                 </>
@@ -154,9 +167,7 @@ const Header: React.FC = () => {
         stacked
       >
         <ToastComponent
-          message={
-            showDeleteToast ? "Account deleted!" : "Logged out successfully!"
-          }
+          message={showDeleteToast ? "Account deleted" : "Logged out"}
           show={showLogoutToast || showDeleteToast}
           onClose={() => {
             setShowLogoutToast(false);

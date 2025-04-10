@@ -13,6 +13,7 @@ import { useEffect, useState } from "react";
 import SimilarArtistsCarousel from "./Components/SimilarArtistsCarousel/SimilarArtistsCarousel";
 import axios from "axios";
 import Cookies from "js-cookie";
+const baseUrl = import.meta.env.VITE_API_BACKEND_URI;
 
 function App() {
   const [selectedArtistId, setSelectedArtistId] = useState<string | null>(
@@ -24,10 +25,8 @@ function App() {
     const fetchMe = async () => {
       try {
         const token = Cookies.get("token");
-        console.log("Token from cookies:", token);
-        if (!token) return; // ⛔ Don't call if not logged in
-
-        const res = await axios.get("http://localhost:5001/api/auth/me", {
+        if (!token) return;
+        const res = await axios.get(`${baseUrl}/api/auth/me`, {
           withCredentials: true,
         });
         setUser(res.data);
@@ -60,28 +59,27 @@ function App() {
 
   return (
     <Router>
-      <Container fluid className="d-flex flex-column min-vh-100 p-0">
-        <Header />
+      {/* <Container fluid className="d-flex flex-column min-vh-100 p-0"> */}
+      <Header />
+      <main className="flex-grow-1 mx-auto px-3" style={{ maxWidth: "1280px" }}>
         <Routes>
           <Route
             path="/search"
             element={
               <div
-                className="container-fluid mt-5"
-                style={{ padding: "0px !important" }}
+                className="container-fluid mt-5 pb-5"
+                style={{ paddingLeft: 0, paddingRight: 0 }}
               >
                 <SearchBar
                   onArtistSelect={handleArtistSelect}
                   onClear={handleSearchClear}
                 />
-
                 {selectedArtistId && (
                   <Description
                     artistId={selectedArtistId}
                     onArtistSelect={handleArtistSelect}
                   />
                 )}
-
                 {selectedArtistId && user && (
                   <SimilarArtistsCarousel
                     artistId={selectedArtistId}
@@ -95,8 +93,10 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/favorites" element={<FavoritesPage />} />
         </Routes>
-        <Footer />
-      </Container>
+      </main>
+      <div style={{ height: "100px" }}></div>
+      <Footer />
+      {/* </Container> */}
     </Router>
   );
 }

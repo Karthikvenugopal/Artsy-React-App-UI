@@ -1,0 +1,22 @@
+.hover-blue-footer {
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #6c757d;
+  padding: 0.5rem;
+}
+
+.hover-blue-footer:hover {
+  background-color: #004d90;
+  color: #fff !important;
+}
+
+/* Fix modal card alignment */
+.artwork-modal-row {
+  justify-content: center;
+}
+
+@media (min-width: 992px) {
+  .artwork-modal-row {
+    justify-content: flex-start !important;
+  }
+}

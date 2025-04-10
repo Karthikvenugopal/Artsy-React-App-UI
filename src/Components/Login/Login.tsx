@@ -3,6 +3,7 @@ import { Form, Button, Card, Alert, Spinner } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Cookies from "js-cookie";
+const baseUrl = import.meta.env.VITE_API_BACKEND_URI;
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -76,12 +77,10 @@ const Login: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await axios.post(
-        "http://localhost:5001/api/auth/login",
-        { email, password }
-      );
-
-      console.log("✅ Login successful:", response.data);
+      const response = await axios.post(`${baseUrl}/api/auth/login`, {
+        email,
+        password,
+      });
 
       Cookies.set("token", response.data.token, { expires: 1 });
       localStorage.setItem("user", JSON.stringify(response.data.user));
@@ -91,15 +90,11 @@ const Login: React.FC = () => {
       window.location.reload();
     } catch (err: any) {
       setLoading(false);
-      console.error(
-        "❌ Login failed:",
-        err.response?.data?.message || err.message
-      );
       setErrors({
         ...errors,
-        general:
-          err.response?.data?.message ||
-          "Invalid credentials. Please try again.",
+        email: "", // clear field-specific errors
+        password: "", // clear field-specific errors
+        general: "Password or email incorrect.",
       });
     }
   };
@@ -109,9 +104,6 @@ const Login: React.FC = () => {
       <Card className="mx-auto" style={{ width: "22rem", marginTop: "5rem" }}>
         <Card.Body>
           <Card.Title className="mb-3 text-start fs-2">Login</Card.Title>
-
-          {errors.general && <Alert variant="danger">{errors.general}</Alert>}
-
           <Form onSubmit={handleSubmit}>
             <Form.Group controlId="formEmail" className="mb-3 text-start">
               <Form.Label>Email Address</Form.Label>
@@ -137,11 +129,14 @@ const Login: React.FC = () => {
                 value={password}
                 onChange={(e) => handleInputChange("password", e.target.value)}
                 onBlur={() => handleBlur("password")}
-                isInvalid={!!errors.password}
+                isInvalid={!!errors.password || !!errors.general}
                 required
               />
               {errors.password && (
                 <div className="text-danger mt-1">{errors.password}</div>
+              )}
+              {errors.general && (
+                <div className="text-danger mt-1">{errors.general}</div>
               )}
             </Form.Group>
 
