@@ -2,9 +2,9 @@ import React, { useEffect, useState } from "react";
 import { Card, Spinner, ToastContainer } from "react-bootstrap";
 import { FaStar, FaRegStar } from "react-icons/fa";
 import axios from "axios";
+import ToastComponent from "../Toast/Toast";
 import fallBackImage from "../../assets/images/artsy_logo.svg";
 import "./SimilarArtistsCarousel.css";
-import ToastComponent from "../Toast/Toast";
 
 const baseUrl = import.meta.env.VITE_API_BACKEND_URI;
 
@@ -18,11 +18,13 @@ const SimilarArtistsCarousel: React.FC<SimilarArtistsCarouselProps> = ({
   onArtistSelect,
 }) => {
   const [similarArtists, setSimilarArtists] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [isFetchingNewArtist, setIsFetchingNewArtist] = useState(false);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [toasts, setToasts] = useState<
     { id: number; message: string; type: "success" | "danger" }[]
   >([]);
+  console.log("loading", loading);
 
   const user = React.useMemo(() => {
     return JSON.parse(localStorage.getItem("user") || "null");
@@ -30,10 +32,11 @@ const SimilarArtistsCarousel: React.FC<SimilarArtistsCarouselProps> = ({
 
   useEffect(() => {
     const syncFavorites = () => {
-      const storedFavs = JSON.parse(localStorage.getItem("favorites") || "[]");
+      const storedFavs = JSON.parse(
+        sessionStorage.getItem("favorites") || "[]"
+      );
       setFavorites(storedFavs);
     };
-
     syncFavorites();
     window.addEventListener("favoritesUpdated", syncFavorites);
     return () => window.removeEventListener("favoritesUpdated", syncFavorites);
@@ -42,11 +45,10 @@ const SimilarArtistsCarousel: React.FC<SimilarArtistsCarouselProps> = ({
   useEffect(() => {
     const fetchSimilarArtists = async () => {
       if (!artistId || !user) return;
-
       try {
         setLoading(true);
         const response = await axios.get(
-          `${baseUrl}/api/artists/similar/${artistId}`
+          `${baseUrl}/api/artists/similar/${artistId}&size=100`
         );
         setSimilarArtists(response.data._embedded?.artists || []);
       } catch (error) {
@@ -55,7 +57,6 @@ const SimilarArtistsCarousel: React.FC<SimilarArtistsCarouselProps> = ({
         setLoading(false);
       }
     };
-
     fetchSimilarArtists();
   }, [artistId, user]);
 
@@ -74,7 +75,7 @@ const SimilarArtistsCarousel: React.FC<SimilarArtistsCarouselProps> = ({
         { withCredentials: true }
       );
       const updatedFavorites = res.data.favorites.map((f: any) => f.artistId);
-      localStorage.setItem("favorites", JSON.stringify(updatedFavorites));
+      sessionStorage.setItem("favorites", JSON.stringify(updatedFavorites));
       window.dispatchEvent(new Event("favoritesUpdated"));
 
       if (favorites.includes(artistId)) {
@@ -83,85 +84,87 @@ const SimilarArtistsCarousel: React.FC<SimilarArtistsCarouselProps> = ({
         addToast("Added to favorites", "success");
       }
     } catch (err) {
-      console.error("Failed to toggle favorite", err);
+      console.error("Failed to toggle favorite:", err);
     }
   };
 
-  const handleArtistClick = (href: string) => {
+  const handleArtistClick = async (href: string) => {
     const parts = href.split("/");
     const newArtistId = parts[parts.length - 1];
-    onArtistSelect(newArtistId);
+    setIsFetchingNewArtist(true);
+    try {
+      await axios.get(`${baseUrl}/api/artists/${newArtistId}`);
+      onArtistSelect(newArtistId);
+    } catch (error) {
+      console.error("Error fetching artist data before navigation", error);
+    } finally {
+      setIsFetchingNewArtist(false);
+    }
   };
 
   if (!user) return null;
 
   return (
-    <div className="mt-4">
-      {loading ? (
+    <div className="custom-similar-carousel-container mt-4">
+      <h3 className="text-start mb-3">Similar Artists</h3>
+      <div className="custom-similar-carousel">
+        {similarArtists.map((artist) => {
+          const id = artist._links.self.href.split("/").pop() as string;
+          const isFav = favorites.includes(id);
+
+          return (
+            <Card
+              key={artist._links.self.href}
+              className="custom-similar-card"
+              onClick={() => handleArtistClick(artist._links.self.href)}
+            >
+              {user && (
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleFavorite(id);
+                  }}
+                  className="custom-similar-fav-btn position-absolute top-0 end-0"
+                >
+                  {isFav ? (
+                    <FaStar
+                      size={20}
+                      color="yellow"
+                      style={{ stroke: "white", strokeWidth: 1 }}
+                    />
+                  ) : (
+                    <FaRegStar
+                      size={20}
+                      color="white"
+                      style={{ stroke: "white", strokeWidth: 1 }}
+                    />
+                  )}
+                </div>
+              )}
+              <Card.Img
+                variant="top"
+                src={artist._links.thumbnail?.href || fallBackImage}
+                alt={artist.title}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = fallBackImage;
+                }}
+                className="custom-similar-card-img"
+              />
+              <Card.Body className="custom-similar-card-body">
+                <Card.Title className="custom-similar-card-title">
+                  {artist.name}
+                </Card.Title>
+              </Card.Body>
+            </Card>
+          );
+        })}
+      </div>
+
+      {isFetchingNewArtist && (
         <div className="text-center my-3">
           <Spinner animation="border" variant="primary" />
         </div>
-      ) : similarArtists.length > 0 ? (
-        <div className="custom-carousel-container">
-          <h3 className="text-start mb-3">Similar Artists</h3>
-          <div className="custom-carousel">
-            {similarArtists.map((artist) => {
-              const artistId = artist._links.self.href.split("/").pop();
-              const isFav = favorites.includes(artistId);
-
-              return (
-                <Card
-                  key={artist._links.self.href}
-                  className="flex-shrink-0 position-relative text-center"
-                  style={{ width: "230px" }}
-                  onClick={() => handleArtistClick(artist._links.self.href)}
-                >
-                  {user && (
-                    <div
-                      className="position-absolute top-0 end-0 m-2 bg-primary rounded-circle d-flex align-items-center justify-content-center"
-                      style={{ padding: "6px", cursor: "pointer", zIndex: 10 }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleFavorite(artistId);
-                      }}
-                    >
-                      {isFav ? (
-                        <FaStar
-                          size={20}
-                          color="yellow"
-                          style={{ stroke: "white", strokeWidth: 1 }}
-                        />
-                      ) : (
-                        <FaRegStar
-                          size={20}
-                          color="white"
-                          style={{ stroke: "white", strokeWidth: 1 }}
-                        />
-                      )}
-                    </div>
-                  )}
-
-                  <Card.Img
-                    variant="top"
-                    src={artist._links.thumbnail?.href || fallBackImage}
-                    alt={artist.title}
-                    className="rounded"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = fallBackImage;
-                    }}
-                  />
-
-                  <Card.Body className="bg-primary text-white p-2 rounded-bottom d-flex flex-column">
-                    <Card.Title className="text-start fw-bold fs-5">
-                      {artist.name}
-                    </Card.Title>
-                  </Card.Body>
-                </Card>
-              );
-            })}
-          </div>
-        </div>
-      ) : null}
+      )}
 
       <ToastContainer
         position="top-end"

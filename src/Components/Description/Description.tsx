@@ -12,6 +12,7 @@ import {
 import { FaStar, FaRegStar } from "react-icons/fa";
 import axios from "axios";
 import ToastComponent from "../Toast/Toast";
+import SimilarArtistsCarousel from "../SimilarArtistsCarousel/SimilarArtistsCarousel";
 import "./Description.css";
 
 const baseUrl = import.meta.env.VITE_API_BACKEND_URI;
@@ -61,12 +62,17 @@ const Description: React.FC<DescriptionProps> = ({
   const [toasts, setToasts] = useState<
     { id: number; message: string; type: "success" | "danger" }[]
   >([]);
+  const [tempArtistId, setTempArtistId] = useState<string | null>(null);
+  console.log("tempArtistId", tempArtistId);
+  const [fetchingNewArtist, setFetchingNewArtist] = useState(false);
 
   const user = JSON.parse(localStorage.getItem("user") || "null");
 
   useEffect(() => {
     const syncFavorites = () => {
-      const storedFavs = JSON.parse(localStorage.getItem("favorites") || "[]");
+      const storedFavs = JSON.parse(
+        sessionStorage.getItem("favorites") || "[]"
+      );
       setFavorites(storedFavs);
     };
     syncFavorites();
@@ -74,26 +80,30 @@ const Description: React.FC<DescriptionProps> = ({
     return () => window.removeEventListener("favoritesUpdated", syncFavorites);
   }, []);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [infoRes, artworksRes] = await Promise.all([
-          axios.get(`${baseUrl}/api/artists/${artistId}`),
-          axios.get(`${baseUrl}/api/artists/artwork/${artistId}`),
-        ]);
-        setArtistInfo(infoRes.data);
-        setArtworks(artworksRes.data);
-      } catch (error) {
-        console.error("Error fetching artist data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const sanitizeBiography = (text: string): string => {
+    return text.replace(/(\w+)-\s+(?=\w)/g, "$1");
+  };
 
-    if (artistId) {
-      fetchData();
+  const fetchData = async (id: string) => {
+    try {
+      setLoading(true);
+      const [infoRes, artworksRes] = await Promise.all([
+        axios.get(`${baseUrl}/api/artists/${id}`),
+        axios.get(`${baseUrl}/api/artists/artwork/${id}`),
+      ]);
+      setArtistInfo(infoRes.data);
+      setArtworks(artworksRes.data);
+    } catch (error) {
+      console.error("Error fetching artist data:", error);
+    } finally {
+      setLoading(false);
+      setFetchingNewArtist(false);
+      setTempArtistId(null);
     }
+  };
+
+  useEffect(() => {
+    if (artistId) fetchData(artistId);
   }, [artistId]);
 
   const addToast = (message: string, type: "success" | "danger") => {
@@ -111,7 +121,7 @@ const Description: React.FC<DescriptionProps> = ({
         { withCredentials: true }
       );
       const updatedFavorites = res.data.favorites.map((f: any) => f.artistId);
-      localStorage.setItem("favorites", JSON.stringify(updatedFavorites));
+      sessionStorage.setItem("favorites", JSON.stringify(updatedFavorites));
       window.dispatchEvent(new Event("favoritesUpdated"));
 
       if (favorites.includes(artistId)) {
@@ -127,14 +137,23 @@ const Description: React.FC<DescriptionProps> = ({
   const handleArtworkClick = async (artwork: Artwork) => {
     try {
       setModalData({ artwork });
+      console.log("artwork", artwork);
       const response = await axios.get(
         `${baseUrl}/api/artists/genes/${artwork.id}`
       );
+      console.log("genes", response.data);
       setGeneData(response.data);
       setModalShow(true);
     } catch (error) {
       console.error("Error fetching gene data:", error);
     }
+  };
+
+  const handleSimilarArtistSelect = async (id: string) => {
+    setTempArtistId(id);
+    setFetchingNewArtist(true);
+    await fetchData(id);
+    onArtistSelect(id);
   };
 
   const isFavorite = favorites.includes(artistId);
@@ -216,12 +235,26 @@ const Description: React.FC<DescriptionProps> = ({
           className="w-100"
         >
           <Nav.Item className="w-50">
-            <Nav.Link eventKey="artistInfo" className="text-center w-100">
+            <Nav.Link
+              eventKey="artistInfo"
+              className="text-center w-100"
+              style={{
+                backgroundColor: activeTab === "artistInfo" ? "#205375" : "",
+                color: activeTab === "artistInfo" ? "white" : "#205375",
+              }}
+            >
               Artist Info
             </Nav.Link>
           </Nav.Item>
           <Nav.Item className="w-50">
-            <Nav.Link eventKey="artworks" className="text-center w-100">
+            <Nav.Link
+              eventKey="artworks"
+              className="text-center w-100"
+              style={{
+                backgroundColor: activeTab === "artworks" ? "#205375" : "",
+                color: activeTab === "artworks" ? "white" : "#205375",
+              }}
+            >
               Artworks
             </Nav.Link>
           </Nav.Item>
@@ -265,9 +298,26 @@ const Description: React.FC<DescriptionProps> = ({
                 {artistInfo.nationality}, {artistInfo.birthday} -{" "}
                 {artistInfo.deathday}
               </div>
-              <div className="mt-3 text-start text-break fs-6">
-                {artistInfo.biography}
+              <div
+                className="mt-3 fs-6"
+                style={{ textAlign: "justify", whiteSpace: "pre-wrap" }}
+              >
+                {sanitizeBiography(artistInfo?.biography || "")}
               </div>
+
+              {user && (
+                <div className="mt-4">
+                  <SimilarArtistsCarousel
+                    artistId={artistId}
+                    onArtistSelect={handleSimilarArtistSelect}
+                  />
+                  {fetchingNewArtist && (
+                    <div className="text-center my-3">
+                      <Spinner animation="border" variant="primary" />
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           ) : artworks._embedded.artworks.length === 0 ? (
             <div className="w-100 d-flex justify-content-center mt-4">

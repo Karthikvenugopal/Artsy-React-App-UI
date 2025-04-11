@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Form, Button, Card, Spinner } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -106,6 +106,13 @@ const Register: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    const localUser = localStorage.getItem("user");
+    if (localUser) {
+      navigate("/search");
+    }
+  }, [navigate]);
+
   const isFormValid = () => emailRegex.test(email) && !!fullName && !!password;
 
   return (
@@ -164,9 +171,13 @@ const Register: React.FC = () => {
             </Form.Group>
 
             <Button
-              variant="primary"
               type="submit"
               className="w-100"
+              style={{
+                backgroundColor:
+                  loading || !isFormValid() ? "#5a9bb5" : "#3a6c8e",
+                borderColor: loading || !isFormValid() ? "#5a9bb5" : "#3a6c8e",
+              }}
               disabled={loading || !isFormValid()}
             >
               {loading ? <Spinner animation="border" size="sm" /> : "Register"}
@@ -175,7 +186,6 @@ const Register: React.FC = () => {
         </Card.Body>
       </Card>
 
-      {/* This stays outside the card, but will have spacing */}
       <div className="mt-3 text-center">
         Already have an account? <Link to="/login">Login</Link>
       </div>

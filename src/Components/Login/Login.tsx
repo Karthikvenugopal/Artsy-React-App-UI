@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Form, Button, Card, Alert, Spinner } from "react-bootstrap";
+import { Form, Button, Card, Spinner } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Cookies from "js-cookie";
@@ -36,23 +36,19 @@ const Login: React.FC = () => {
 
     if (field === "email") {
       if (!email.trim()) {
-        newErrors.email = "Email is required.";
+        newErrors.email = "Email is required";
       } else if (!emailRegex.test(email)) {
-        newErrors.email = "Email must be valid.";
+        newErrors.email = "Email must be valid";
       } else {
         newErrors.email = "";
       }
     }
 
     if (field === "password") {
-      newErrors.password = password.trim() ? "" : "Password is required.";
+      newErrors.password = password.trim() ? "" : "Password is required";
     }
 
     setErrors(newErrors);
-  };
-
-  const isFormValid = () => {
-    return emailRegex.test(email) && password.trim().length > 0;
   };
 
   const handleBlur = (field: string) => {
@@ -64,12 +60,22 @@ const Login: React.FC = () => {
   };
 
   const handleInputChange = (field: string, value: string) => {
-    if (field === "email") setEmail(value);
-    if (field === "password") setPassword(value);
-
-    if (touched[field as keyof typeof touched]) {
-      validateField(field);
+    if (field === "email") {
+      setEmail(value);
+      setErrors((prev) => ({ ...prev, email: "" }));
     }
+
+    if (field === "password") {
+      setPassword(value);
+      setErrors((prev) => ({ ...prev, general: "", password: "" }));
+      if (touched.password) {
+        validateField("password");
+      }
+    }
+  };
+
+  const isFormValid = () => {
+    return emailRegex.test(email) && password.trim().length > 0;
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -81,10 +87,9 @@ const Login: React.FC = () => {
         email,
         password,
       });
-
+      console.log("Login response:", response.data);
       Cookies.set("token", response.data.token, { expires: 1 });
       localStorage.setItem("user", JSON.stringify(response.data.user));
-
       setLoading(false);
       navigate("/search");
       window.location.reload();
@@ -92,9 +97,9 @@ const Login: React.FC = () => {
       setLoading(false);
       setErrors({
         ...errors,
-        email: "", // clear field-specific errors
-        password: "", // clear field-specific errors
-        general: "Password or email incorrect.",
+        email: "",
+        password: "",
+        general: "Password or email is incorrect",
       });
     }
   };
@@ -132,12 +137,11 @@ const Login: React.FC = () => {
                 isInvalid={!!errors.password || !!errors.general}
                 required
               />
-              {errors.password && (
+              {errors.password ? (
                 <div className="text-danger mt-1">{errors.password}</div>
-              )}
-              {errors.general && (
+              ) : errors.general ? (
                 <div className="text-danger mt-1">{errors.general}</div>
-              )}
+              ) : null}
             </Form.Group>
 
             <Button
@@ -145,6 +149,11 @@ const Login: React.FC = () => {
               type="submit"
               className="w-100"
               disabled={loading || !isFormValid()}
+              style={{
+                backgroundColor:
+                  loading || !isFormValid() ? "#5a9bb5" : "#3a6c8e",
+                borderColor: loading || !isFormValid() ? "#5a9bb5" : "#3a6c8e",
+              }}
             >
               {loading ? <Spinner animation="border" size="sm" /> : "Login"}
             </Button>

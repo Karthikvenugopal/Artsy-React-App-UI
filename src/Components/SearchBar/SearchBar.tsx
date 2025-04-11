@@ -18,18 +18,21 @@ const SearchBar: React.FC<SearchBarProps> = ({ onArtistSelect, onClear }) => {
   const [searchResults, setSearchResults] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [carouselKey, setCarouselKey] = React.useState(0);
+  const [hasSearched, setHasSearched] = React.useState(false);
 
   const handleClear = () => {
     setSearchTerm("");
     setSearchResults([]);
     setCarouselKey((prev) => prev + 1);
     setLoading(false);
+    setHasSearched(false);
     onClear();
   };
 
   const handleSearch = async () => {
     if (!searchTerm.trim()) return;
     setLoading(true);
+    setHasSearched(true);
     try {
       const res = await axios.get(
         `${baseUrl}/api/artists/search/${encodeURIComponent(searchTerm.trim())}`
@@ -59,6 +62,11 @@ const SearchBar: React.FC<SearchBarProps> = ({ onArtistSelect, onClear }) => {
           variant="primary"
           onClick={handleSearch}
           disabled={loading || !searchTerm.trim()}
+          style={{
+            backgroundColor:
+              loading || !searchTerm.trim() ? "#5a9bb5" : "#3a6c8e",
+            borderColor: loading || !searchTerm.trim() ? "#5a9bb5" : "#3a6c8e",
+          }}
         >
           Search
           {loading && (
@@ -84,6 +92,27 @@ const SearchBar: React.FC<SearchBarProps> = ({ onArtistSelect, onClear }) => {
           onArtistSelect={onArtistSelect}
         />
       )}
+
+      {!loading &&
+        hasSearched &&
+        searchTerm.trim() &&
+        searchResults.length === 0 && (
+          <div className="w-100 d-flex justify-content-center mt-4">
+            <div
+              className="w-100 p-3"
+              style={{
+                maxWidth: "3000px",
+                backgroundColor: "#f8d7da",
+                border: "1px solid #f5c2c7",
+                color: "#842029",
+                borderRadius: "0.375rem",
+                textAlign: "left",
+              }}
+            >
+              No results found.
+            </div>
+          </div>
+        )}
     </div>
   );
 };

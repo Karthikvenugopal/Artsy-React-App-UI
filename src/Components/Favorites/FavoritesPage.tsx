@@ -57,7 +57,7 @@ const FavoritesPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const cached = localStorage.getItem("cached_favorites");
+    const cached = sessionStorage.getItem("cached_favorites");
     if (cached) {
       setFavorites(JSON.parse(cached));
       setLoading(false);
@@ -73,7 +73,7 @@ const FavoritesPage: React.FC = () => {
             new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime()
         );
         setFavorites(sorted);
-        localStorage.setItem("cached_favorites", JSON.stringify(sorted));
+        sessionStorage.setItem("cached_favorites", JSON.stringify(sorted));
       } catch (err) {
         console.error("Error fetching favorites:", err);
       } finally {
@@ -88,8 +88,16 @@ const FavoritesPage: React.FC = () => {
   const addToast = (message: string, type: "success" | "danger") => {
     setToasts((prev) => {
       const next = [...prev, { id: Date.now(), message, type }];
-      return next.slice(-3); // Keep max 3 toasts
+      return next.slice(-3);
     });
+  };
+
+  const handleCardClick = (artistId: string) => {
+    sessionStorage.setItem("selectedArtistId", artistId);
+    sessionStorage.removeItem("searchTerm");
+    sessionStorage.removeItem("cached_searchResults");
+    navigate("/search");
+    window.dispatchEvent(new Event("selectedArtistUpdated"));
   };
 
   const handleRemove = async (artistId: string) => {
@@ -101,17 +109,12 @@ const FavoritesPage: React.FC = () => {
       );
       const updated = favorites.filter((a) => a.artistId !== artistId);
       setFavorites(updated);
-      localStorage.setItem("cached_favorites", JSON.stringify(updated));
+      sessionStorage.setItem("cached_favorites", JSON.stringify(updated));
       window.dispatchEvent(new Event("favoritesUpdated"));
       addToast("Removed from favorites", "danger");
     } catch (err) {
       console.error("Failed to remove favorite:", err);
     }
-  };
-
-  const handleCardClick = (artistId: string) => {
-    localStorage.setItem("selectedArtistId", artistId);
-    navigate("/search");
   };
 
   const user = JSON.parse(localStorage.getItem("user") || "null");
@@ -153,7 +156,6 @@ const FavoritesPage: React.FC = () => {
                 className="favorites-card"
                 onClick={() => handleCardClick(artist.artistId)}
               >
-                {/* Blurred background */}
                 <div
                   style={{
                     backgroundImage: `url(${
@@ -170,7 +172,6 @@ const FavoritesPage: React.FC = () => {
                     zIndex: 1,
                   }}
                 />
-                {/* Overlay content */}
                 <Card.Body
                   style={{
                     position: "relative",
@@ -183,7 +184,6 @@ const FavoritesPage: React.FC = () => {
                     flexDirection: "column",
                     justifyContent: "space-between",
                   }}
-                  onClick={(e) => e.stopPropagation()}
                 >
                   <div>
                     <Card.Title className="fw-bold fs-5 text-white text-start">

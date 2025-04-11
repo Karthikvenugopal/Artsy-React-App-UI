@@ -11,9 +11,14 @@ const baseUrl = import.meta.env.VITE_API_BACKEND_URI;
 interface CarouselProps {
   items: any[];
   onArtistSelect: (artistId: string) => void;
+  currentArtistId?: string;
 }
 
-const ArtistCarousel: React.FC<CarouselProps> = ({ items, onArtistSelect }) => {
+const ArtistCarousel: React.FC<CarouselProps> = ({
+  items,
+  onArtistSelect,
+  currentArtistId,
+}) => {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [toasts, setToasts] = useState<
     { id: number; message: string; type: "success" | "danger" }[]
@@ -22,7 +27,9 @@ const ArtistCarousel: React.FC<CarouselProps> = ({ items, onArtistSelect }) => {
 
   useEffect(() => {
     const syncFavorites = () => {
-      const storedFavs = JSON.parse(localStorage.getItem("favorites") || "[]");
+      const storedFavs = JSON.parse(
+        sessionStorage.getItem("favorites") || "[]"
+      );
       setFavorites(storedFavs);
     };
 
@@ -30,6 +37,11 @@ const ArtistCarousel: React.FC<CarouselProps> = ({ items, onArtistSelect }) => {
     window.addEventListener("favoritesUpdated", syncFavorites);
     return () => window.removeEventListener("favoritesUpdated", syncFavorites);
   }, []);
+
+  useEffect(() => {
+    const favs = JSON.parse(sessionStorage.getItem("favorites") || "[]");
+    setFavorites(favs);
+  }, [currentArtistId]);
 
   const addToast = (message: string, type: "success" | "danger") => {
     setToasts((prev) => {
@@ -46,7 +58,7 @@ const ArtistCarousel: React.FC<CarouselProps> = ({ items, onArtistSelect }) => {
         { withCredentials: true }
       );
       const updatedFavorites = res.data.favorites.map((f: any) => f.artistId);
-      localStorage.setItem("favorites", JSON.stringify(updatedFavorites));
+      sessionStorage.setItem("favorites", JSON.stringify(updatedFavorites));
       window.dispatchEvent(new Event("favoritesUpdated"));
 
       if (favorites.includes(artistId)) {
@@ -66,23 +78,17 @@ const ArtistCarousel: React.FC<CarouselProps> = ({ items, onArtistSelect }) => {
   };
 
   return (
-    <div className="custom-carousel-container">
-      <div className="custom-carousel">
+    <div className="custom-artist-carousel-container">
+      <div className="custom-artist-carousel">
         {items.map((item) => {
-          const artistId = item._links.self.href.split("/").pop();
+          const artistId = item._links.self.href.split("/").pop() as string;
           const isFav = favorites.includes(artistId);
+          const isSelected = currentArtistId === artistId;
 
           return (
             <Card
               key={item._links.self.href}
-              className="flex-shrink-0 border rounded"
-              style={{
-                width: "230px",
-                textAlign: "center",
-                display: "flex",
-                flexDirection: "column",
-                position: "relative",
-              }}
+              className={`custom-artist-card ${isSelected ? "selected" : ""}`}
               onClick={() => handleArtistClick(item._links.self.href)}
             >
               {user && (
@@ -91,8 +97,7 @@ const ArtistCarousel: React.FC<CarouselProps> = ({ items, onArtistSelect }) => {
                     e.stopPropagation();
                     toggleFavorite(artistId);
                   }}
-                  className="position-absolute top-0 end-0 bg-primary rounded-circle p-1 d-flex align-items-center justify-content-center"
-                  style={{ margin: "10px", zIndex: 10 }}
+                  className="custom-artist-fav-btn position-absolute top-0 end-0"
                 >
                   {isFav ? (
                     <FaStar
@@ -109,21 +114,17 @@ const ArtistCarousel: React.FC<CarouselProps> = ({ items, onArtistSelect }) => {
                   )}
                 </div>
               )}
-
               <Card.Img
                 variant="top"
                 src={item._links.thumbnail?.href || fallBackImage}
                 alt={item.title}
-                className="rounded-top"
                 onError={(e) => {
                   (e.target as HTMLImageElement).src = fallBackImage;
                 }}
+                className="custom-artist-card-img rounded-top"
               />
-              <Card.Body className="bg-primary text-white p-2 rounded-bottom d-flex flex-column">
-                <Card.Title
-                  className="text-start fw-bold fs-5 mb-0 text-wrap"
-                  style={{ color: "white" }}
-                >
+              <Card.Body className="custom-artist-card-body">
+                <Card.Title className="custom-artist-card-title">
                   {item.title}
                 </Card.Title>
               </Card.Body>

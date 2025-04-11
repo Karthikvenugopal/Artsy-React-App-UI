@@ -6,11 +6,10 @@
 }
 
 .hover-blue-footer:hover {
-  background-color: #004d90;
+  background-color: #205375;
   color: #fff !important;
 }
 
-/* Fix modal card alignment */
 .artwork-modal-row {
   justify-content: center;
 }
@@ -18,5 +17,16 @@
 @media (min-width: 992px) {
   .artwork-modal-row {
     justify-content: flex-start !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .artwork-card {
+    max-width: 100% !important;
+  }
+  .artwork-card .card-img-top {
+    width: 100%;
+    height: 350px;
+    object-fit: cover;
   }
 }

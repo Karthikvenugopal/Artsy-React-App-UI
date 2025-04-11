@@ -33,10 +33,9 @@ const ToastComponent: React.FC<ToastProps> = ({
       onClose={onClose}
       delay={3000}
       autohide
-      closeButton={true}
       style={{
         ...toastStyles[type],
-        maxWidth: "300px",
+        minWidth: "225px",
         width: "100%",
       }}
     >

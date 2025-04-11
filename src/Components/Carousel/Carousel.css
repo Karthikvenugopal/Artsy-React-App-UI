@@ -1,4 +1,8 @@
-.custom-carousel {
+.custom-artist-carousel-container {
+  margin-bottom: 20px;
+}
+
+.custom-artist-carousel {
   display: flex;
   overflow-x: auto;
   gap: 1rem;
@@ -7,20 +11,88 @@
   scrollbar-color: #888 #f1f1f1;
 }
 
-.custom-carousel::-webkit-scrollbar {
+.custom-artist-carousel::-webkit-scrollbar {
   height: 8px;
 }
 
-.custom-carousel::-webkit-scrollbar-track {
+.custom-artist-carousel::-webkit-scrollbar-track {
   background: #f1f1f1;
   border-radius: 4px;
 }
 
-.custom-carousel::-webkit-scrollbar-thumb {
+.custom-artist-carousel::-webkit-scrollbar-thumb {
   background: #888;
   border-radius: 4px;
 }
 
-.custom-carousel::-webkit-scrollbar-thumb:hover {
+.custom-artist-carousel::-webkit-scrollbar-thumb:hover {
   background: #555;
+}
+
+.custom-artist-card {
+  flex-shrink: 0;
+  width: 230px;
+  position: relative;
+  cursor: pointer;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  transition: transform 0.2s ease;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.custom-artist-card.selected .custom-artist-card-body {
+  background-color: #3a6c8e;
+}
+
+.custom-artist-fav-btn {
+  background: #3a6c8e;
+  border-radius: 50%;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  margin: 10px;
+}
+
+.custom-artist-card-img {
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  width: 100%;
+  object-fit: cover;
+}
+
+.custom-artist-card-body {
+  background-color: #205375;
+  padding: 0.2rem 0.5rem;
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+  transition: background-color 0.2s ease;
+}
+
+.custom-artist-card:hover .custom-artist-card-body {
+  background-color: #3a6c8e;
+}
+
+.custom-artist-card-title {
+  color: white;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+  text-align: left;
+}
+
+@media (max-width: 768px) {
+  .custom-artist-card {
+    width: 65%;
+  }
+}
+
+@media (min-width: 992px) {
+  .custom-artist-card {
+    width: calc((100% / 5) - 0.8rem);
+  }
 }
