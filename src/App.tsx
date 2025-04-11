@@ -9,8 +9,10 @@ import Login from "./Components/Login/Login";
 import FavoritesPage from "./Components/Favorites/FavoritesPage";
 import Description from "./Components/Description/Description";
 import { useEffect, useState } from "react";
+import { Navigate } from "react-router-dom"; // at the top
 import axios from "axios";
 import Cookies from "js-cookie";
+import { Redirect } from "react-router-dom";
 const baseUrl = import.meta.env.VITE_API_BACKEND_URI;
 
 function App() {
@@ -70,6 +72,7 @@ function App() {
       <Header />
       <main className="flex-grow-1 mx-auto px-3" style={{ maxWidth: "1280px" }}>
         <Routes>
+          <Route path="/" element={<Navigate to="/search" replace />} />
           <Route
             path="/search"
             element={

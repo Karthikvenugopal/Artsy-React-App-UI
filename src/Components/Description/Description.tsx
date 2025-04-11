@@ -68,6 +68,7 @@ const Description: React.FC<DescriptionProps> = ({
 
   const user = JSON.parse(localStorage.getItem("user") || "null");
 
+  // In Description.tsx
   useEffect(() => {
     const syncFavorites = () => {
       const storedFavs = JSON.parse(

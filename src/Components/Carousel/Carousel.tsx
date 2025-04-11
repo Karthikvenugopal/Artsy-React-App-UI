@@ -25,6 +25,7 @@ const ArtistCarousel: React.FC<CarouselProps> = ({
   >([]);
   const user = JSON.parse(localStorage.getItem("user") || "null");
 
+  // In ArtistCarousel.tsx
   useEffect(() => {
     const syncFavorites = () => {
       const storedFavs = JSON.parse(
@@ -32,7 +33,6 @@ const ArtistCarousel: React.FC<CarouselProps> = ({
       );
       setFavorites(storedFavs);
     };
-
     syncFavorites();
     window.addEventListener("favoritesUpdated", syncFavorites);
     return () => window.removeEventListener("favoritesUpdated", syncFavorites);

@@ -33,6 +33,7 @@ const Header: React.FC = () => {
   const handleLogout = () => {
     Cookies.remove("token");
     localStorage.removeItem("user");
+    sessionStorage.removeItem("favorites");
     setUser(null);
     setShowLogoutToast(true);
     setTimeout(() => {
@@ -43,6 +44,7 @@ const Header: React.FC = () => {
 
   const handleDeleteAccount = async () => {
     try {
+      sessionStorage.removeItem("favorites");
       await axios.delete(`${baseUrl}/api/auth/delete-account`, {
         withCredentials: true,
       });
