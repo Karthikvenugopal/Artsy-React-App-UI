@@ -34,6 +34,7 @@ const Header: React.FC = () => {
     Cookies.remove("token");
     localStorage.removeItem("user");
     sessionStorage.removeItem("favorites");
+    sessionStorage.removeItem("cached_favorites");
     setUser(null);
     setShowLogoutToast(true);
     setTimeout(() => {
@@ -50,6 +51,7 @@ const Header: React.FC = () => {
       });
       Cookies.remove("token");
       localStorage.removeItem("user");
+      sessionStorage.removeItem("cached_favorites");
       setUser(null);
       setShowDeleteToast(true);
       setTimeout(() => {

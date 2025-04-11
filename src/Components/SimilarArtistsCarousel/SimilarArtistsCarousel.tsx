@@ -30,7 +30,6 @@ const SimilarArtistsCarousel: React.FC<SimilarArtistsCarouselProps> = ({
     return JSON.parse(localStorage.getItem("user") || "null");
   }, []);
 
-  // In SimilarArtistsCarousel.tsx
   useEffect(() => {
     const syncFavorites = () => {
       const storedFavs = JSON.parse(

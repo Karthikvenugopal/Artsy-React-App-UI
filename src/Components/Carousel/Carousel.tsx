@@ -25,7 +25,6 @@ const ArtistCarousel: React.FC<CarouselProps> = ({
   >([]);
   const user = JSON.parse(localStorage.getItem("user") || "null");
 
-  // In ArtistCarousel.tsx
   useEffect(() => {
     const syncFavorites = () => {
       const storedFavs = JSON.parse(

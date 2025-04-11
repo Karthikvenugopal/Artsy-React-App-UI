@@ -9,10 +9,9 @@ import Login from "./Components/Login/Login";
 import FavoritesPage from "./Components/Favorites/FavoritesPage";
 import Description from "./Components/Description/Description";
 import { useEffect, useState } from "react";
-import { Navigate } from "react-router-dom"; // at the top
+import { Navigate } from "react-router-dom";
 import axios from "axios";
 import Cookies from "js-cookie";
-import { Redirect } from "react-router-dom";
 const baseUrl = import.meta.env.VITE_API_BACKEND_URI;
 
 function App() {
